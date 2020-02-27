@@ -36,30 +36,27 @@ toPostfix (BinOp op lhs rhs) = toPostfix lhs ++ " " ++ toPostfix rhs ++ " " ++ s
 
 fromPostfix :: String -> Maybe AST 
 fromPostfix input = go [] input where
-	go :: [AST] -> String -> Maybe AST
-	go _ (' ':xs)   = go _ xs
-	go [ast] ""     = Just ast
+    go :: [AST] -> String -> Maybe AST
+    go stack (' ':xs)   = go stack xs
+    go [ast] ""     = Just ast
     go stack input' = case (parseOp input') of 
-		Just (op, rest) -> case stack of 
-			(lhs:rhs:stack') -> go ((BinOp op lhs rhs):stack') rest
-			_                -> Nothing
-		Nothing -> do 
-		    (num, rest) <- parseNum input
-			return go (num:stack) rest
-		--case parseNum input' of
-			--Just (num, rest) -> go (num:stack) rest
-			--Nothing          -> Nothing
+        Just (op, rest) -> case stack of 
+            (rhs:lhs:stack') -> go ((BinOp op lhs rhs):stack') rest
+            _                -> Nothing
+        Nothing -> case parseNum input' of
+            Just (num, rest) -> go (num:stack) rest
+            Nothing          -> Nothing
         
-  	 
+     
 
 -- Парсит левую скобку
 parseLbr :: String -> Maybe ((), String)
-parseLbr '(':rest = Just ((), rest)
+parseLbr ('(':rest) = Just ((), rest)
 parseLbr _        = Nothing
 
 -- Парсит правую скобку
 parseRbr :: String -> Maybe ((), String)
-parseRbr ')':rest = Just ((), rest)
+parseRbr (')':rest) = Just ((), rest)
 parseRbr _        = Nothing
 
 parseExpr :: String -> Maybe (AST, String)
@@ -70,10 +67,10 @@ parseNum input =
     let (num, rest) = span isDigit input in 
     case num of 
       [] -> do 
-	    (_, rest') <- parseLbr rest
-	    (expr, rest'') <- parseExpr rest'
-	    (_, rest''') <- parseRbr rest''
-		return (expr, rest''')
+        (_, rest') <- parseLbr rest
+        (expr, rest'') <- parseExpr rest'
+        (_, rest''') <- parseRbr rest''
+        return (expr, rest''')
       xs -> Just (Num $ Sum.parseNum xs, rest)
   
   
