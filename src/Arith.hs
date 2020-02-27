@@ -23,24 +23,44 @@ data AST = BinOp Operator AST AST
 -- Между числами и знаками операций по одному пробелу
 -- BinOp Plus (Num 13) (Num 42) -> "13 42 +"
 toPostfix :: AST -> String
-toPostfix ast = error "toPostfix not implemented"
+toPostfix (Num n) = show n
+toPostfix (BinOp op lhs rhs) = toPostfix lhs ++ " " ++ toPostfix rhs ++ " " ++ show op 
 
 -- Парсит выражение в постфиксной записи 
 -- Выражение принимается только целиком (не максимально длинный префикс)
 -- Между числами и знаками операций по одному пробелу
 -- "13 42 +" -> Just (BinOp Plus (Num 13) (Num 42))
 -- "1 2 3 +" -> Nothing
--- "1 2 + *" -> Nothing 
+-- "1 2 + *" -> Nothing
+
+
 fromPostfix :: String -> Maybe AST 
-fromPostfix input = error "fromPostfix not implemented"
+fromPostfix input = go [] input where
+	go :: [AST] -> String -> Maybe AST
+	go _ (' ':xs)   = go _ xs
+	go [ast] ""     = Just ast
+    go stack input' = case (parseOp input') of 
+		Just (op, rest) -> case stack of 
+			(lhs:rhs:stack') -> go ((BinOp op lhs rhs):stack') rest
+			_                -> Nothing
+		Nothing -> do 
+		    (num, rest) <- parseNum input
+			return go (num:stack) rest
+		--case parseNum input' of
+			--Just (num, rest) -> go (num:stack) rest
+			--Nothing          -> Nothing
+        
+  	 
 
 -- Парсит левую скобку
 parseLbr :: String -> Maybe ((), String)
-parseLbr = error "parseLbr not implemented"
+parseLbr '(':rest = Just ((), rest)
+parseLbr _        = Nothing
 
 -- Парсит правую скобку
 parseRbr :: String -> Maybe ((), String)
-parseRbr = error "parseRbr not implemented"
+parseRbr ')':rest = Just ((), rest)
+parseRbr _        = Nothing
 
 parseExpr :: String -> Maybe (AST, String)
 parseExpr input = parseSum input
@@ -49,7 +69,11 @@ parseNum :: String -> Maybe (AST, String)
 parseNum input = 
     let (num, rest) = span isDigit input in 
     case num of 
-      [] -> Nothing  
+      [] -> do 
+	    (_, rest') <- parseLbr rest
+	    (expr, rest'') <- parseExpr rest'
+	    (_, rest''') <- parseRbr rest''
+		return (expr, rest''')
       xs -> Just (Num $ Sum.parseNum xs, rest)
   
   
