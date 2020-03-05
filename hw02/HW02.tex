@@ -13,165 +13,253 @@
 \usetikzlibrary{shapes,arrows}
 \usetikzlibrary{positioning,automata}
 \tikzset{every state/.style={minimum size=0.2cm},
-initial text={}
+	initial text={}
 }
 
+\mathchardef\mhyphen="2D
+\newcommand{\divby}{\mathop{\vdots}}
+\newcommand{\ndivby}{\mathop{\not\vdots}}
 
 \newenvironment{myauto}[1][3]
 {
-  \begin{center}
-    \begin{tikzpicture}[> = stealth,node distance=#1cm, on grid, very thick]
-}
-{
-    \end{tikzpicture}
-  \end{center}
+	\begin{center}
+		\begin{tikzpicture}[> = stealth,node distance=#1cm, on grid, very thick]
+	}
+	{
+		\end{tikzpicture}
+	\end{center}
 }
 
 
 \begin{document}
-\begin{center} {\LARGE Формальные языки} \end{center}
-
-\begin{center} \Large домашнее задание до 23:59 05.03 \end{center}
-\bigskip
-
-\begin{enumerate}
-  \item Доказать или опровергнуть утверждение: произведение двух минимальных автоматов всегда дает минимальный автомат (рассмотреть случаи для пересечения, объединения и разности языков).
-  \item Для регулярного выражения:
-   \[ (a \mid b)^+ (aa \mid bb \mid abab \mid baba)^* (a \mid b)^+\]
-  Построить эквивалентные:
-  \begin{enumerate}
-    \item Недетерминированный конечный автомат
-    \item Недетерминированный конечный автомат без $\varepsilon$-переходов
-    \item Минимальный полный детерминированный конечный автомат
-  \end{enumerate}
-  \item Построить регулярное выражение, распознающее тот же язык, что и автомат:
-  \begin{myauto}
-    \node[state]           (q_2)                {$q_2$};
-    \node[state,initial]   (q_0) [left=of  q_2] {$q_0$};
-    \node[state]           (q_1) [above=of q_2] {$q_1$};
-    \node[state]           (q_3) [below=of q_2] {$q_3$};
-    \node[state,accepting] (q_4) [right=of q_2] {$q_4$};
-
-    \path[->] (q_0) edge [loop above] node [above] {$a, b, c$} ()
-                    edge              node [above] {$a$}       (q_1)
-                    edge              node [above] {$b$}       (q_2)
-                    edge              node [above] {$c$}       (q_3)
-              (q_1) edge [loop above] node [above] {$b, c$}    ()
-                    edge              node [above] {$a$}       (q_4)
-              (q_2) edge [loop above] node [above] {$a, c$}    ()
-                    edge              node [above] {$b$}       (q_4)
-              (q_3) edge [loop above] node [above] {$a, b$}    ()
-                    edge              node [above] {$c$}       (q_4)
-    ;
-  \end{myauto}
-  \item Определить, является ли автоматным язык $\{ \omega \omega^r \mid \omega \in \{ 0, 1 \}^* \}$. Если является --- построить автомат, иначе --- доказать.
-  \item Определить, является ли автоматным язык $\{ u a a v \mid u, v \in \{ a, b \}^* , |u|_b \geq |v|_a \}$. Если является --- построить автомат, иначе --- доказать.
-\end{enumerate}
-
-\newpage
-
-\begin{center}
-  \Large{Пример применения алгоритма минимизации}
-\end{center}
-
-\bigskip
-
-Минимизируем данный автомат:
-
-\begin{center}
-  \begin{tikzpicture}[> = stealth,node distance=3cm, on grid]
-    \node[state]           (q_2)                      {C};
-    \node[state,initial]   (q_0) [above left=of q_2]  {A};
-    \node[state]           (q_1) [below left=of q_2]  {B};
-    \node[state]           (q_3) [right=of q_2]       {D};
-    \node[state]           (q_4) [above right=of q_3] {E};
-    \node[state,accepting] (q_5) [below right=of q_3] {F};
-    \node[state,accepting] (q_6) [above right=of q_5] {G};
-
-    \path[->] (q_0) edge [bend left=15]  node [right] {$1$} (q_1)
-                    edge                 node [above] {$0$} (q_2)
-              (q_1) edge [bend left=15]  node [left]  {$1$} (q_0)
-                    edge                 node [below] {$0$} (q_2)
-              (q_2) edge [bend right=15] node [below] {$1$} (q_3)
-                    edge [bend left=15]  node [above] {$0$} (q_3)
-              (q_3) edge                 node [below] {$1$} (q_5)
-                    edge                 node [above] {$0$} (q_4)
-              (q_4) edge                 node [above] {$1$} (q_6)
-                    edge                 node [right] {$0$} (q_5)
-              (q_5) edge [loop below]    node         {$1$} ()
-                    edge [loop left]     node         {$0$} ()
-              (q_6) edge                 node [below] {$1$} (q_5)
-                    edge [loop right]    node         {$0$} ();
-  \end{tikzpicture}
-\end{center}
-
-Автомат полный, в нем нет недостижимых вершин --- продолжаем.
-
-Строим обратное $\delta$ отображение.
-
-\begin{tabular}{c|c|c}
-$\delta^{-1}$ & 0 & 1 \\ \hline
-A & --- & B \\
-B & --- & A \\
-C & A B & --- \\
-D & C & C \\
-E & D & --- \\
-F & E F & D F G \\
-G & G & E
-\end{tabular}
-
-Отмечаем в таблице и добавляем в очередь пары состояний, различаемых словом $\varepsilon$: все пары, один элемент которых --- терминальное состояние, а второй --- не терминальное состояние. Для данного автомата это пары
-
-$(A, F), (B, F), (C, F), (D, F), (E,F), (A, G), (B, G), (C, G), (D, G), (E, G)$
-
-Дальше итерируем процесс определения неэквивалентных состояний, пока очередь не оказывается пуста.
-
-$(A, F)$ не дает нам новых неэквивалентных пар. Для $(B, F)$ находится 2 пары: $(A, D), (A, G)$. Первая пара не отмечена в таблице --- отмечаем и добавляем в очередь. Вторая пара уже отмечена в таблице, значит, ничего делать не надо. Переходим к следующей паре из очереди. Итерируем дальше, пока очередь не опустошится.
-
-Результирующая таблица (заполнен только треугольник, потому что остальное симметрично) и порядок добавления пар в очередь.
-
-\begin{tabular}{c|cc|cc|cc|c}
-& A & B & C & D & E & F & G \\ \hline
-A &&&&&&& \\
-B &&&&&&& \\ \hline
-C & \checkmark & \checkmark &&&&& \\
-D & \checkmark & \checkmark & \checkmark &&&& \\ \hline
-E & \checkmark & \checkmark & \checkmark & \checkmark &&& \\
-F & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark && \\ \hline
-G & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark && \\
-\end{tabular}
-
-Очередь:
-
-$
-(A, F), (B, F), (C, F), (D, F), (E,F), (A, G), (B, G), (C, G), (D, G), (E, G),
-$
-
-$
-(B, D), (A, D), (A, E), (B, E), (C, E), (C, D), (D, E), (A,C), (B, C))
-$
-
-В таблице выделились классы эквивалентных вершин: $\{A, B\}, \{C\}, \{D\}, \{E\}, \{F,G\}$. Остается только нарисовать результирующий автомат с вершинами-классами. Переходы добавляются тогда, когда из какого-нибудь состояния первого класса есть переход в какое-нибудь состояние второго класса. Минимизированный автомат:
-
-\begin{center}
-  \begin{tikzpicture}[> = stealth,node distance=3cm, on grid]
-    \node[state,initial]   (q_01)                     {AB};
-    \node[state]           (q_2)  [right=of q_01]      {C};
-    \node[state]           (q_3)  [right=of q_2]       {D};
-    \node[state]           (q_4)  [above right=of q_3] {E};
-    \node[state,accepting] (q_56) [below right=of q_3] {FG};
-
-    \path[->] (q_01) edge [loop above]    node [above] {$1$} ()
-                     edge                 node [above] {$0$} (q_2)
-              (q_2)  edge [bend right=15] node [below] {$1$} (q_3)
-                     edge [bend left=15]  node [above] {$0$} (q_3)
-              (q_3)  edge                 node [below] {$1$} (q_56)
-                     edge                 node [above] {$0$} (q_4)
-              (q_4)  edge [bend right=15] node [left]  {$1$} (q_56)
-                     edge [bend left=15]  node [right] {$0$} (q_56)
-              (q_56) edge [loop below]    node         {$1$} ()
-                     edge [loop left]     node         {$0$} ();
-  \end{tikzpicture}
-\end{center}
-
+	\begin{center} {\LARGE Формальные языки} \end{center}
+	
+	\begin{center} \Large домашнее задание до 23:59 05.03 \end{center}
+	\bigskip
+	
+	\begin{enumerate}
+		\item Доказать или опровергнуть утверждение: произведение двух минимальных автоматов всегда дает минимальный автомат (рассмотреть случаи для пересечения, объединения и разности языков).\\
+		
+		\textbf{Решение:} для разности это утверждение неверно для равных автоматов из хотя бы двух вершин (так как разность будет приниматься пустым автоматом, а в произведении вершин будет хотя бы две). Для пересечения и объединения рассмотрим следующий контрпример: первый автомат принимает язык $\{a^n \mid n \divby 2\}$, второй принимает $\{a^n \mid n \ndivby 2\}$:
+		\begin{myauto}
+			\node[state]                        (q_11)                 {$B$};
+			\node[state, initial, accepting]    (q_10) [left=of q_11]  {$A$};
+			\node[state, initial]               (q_20) [right=of q_11] {$X$};
+			\node[state, accepting]             (q_21) [right=of q_20] {$Y$};
+			
+			\path[->] (q_10)    edge [bend right=15] node  [below] {$a$}       (q_11)
+			(q_11)    edge [bend right=15] node  [above] {$a$}       (q_10)
+			(q_20)    edge [bend right=15] node  [below] {$a$}       (q_21)
+			(q_21)    edge [bend right=15] node  [above] {$a$}       (q_20)
+			
+			;
+		\end{myauto}
+		Тогда после удаления недостижимых вершин произведение имеет вид
+		\begin{myauto}
+			\node[state, initial]     (q_0)                {$AX$};
+			\node[state]              (q_1) [right=of q_0] {$BY$};
+			
+			\path[->] (q_0)    edge [bend right=15] node  [below] {$a$}       (q_1)
+			(q_1)              edge [bend right=15] node  [above] {$a$}       (q_0)
+			
+			;
+		\end{myauto}
+		или 
+		\begin{myauto}
+		\node[state, initial, accepting]     (q_0)                {$AX$};
+		\node[state, accepting]              (q_1) [right=of q_0] {$BY$};
+		
+		\path[->] (q_0)    edge [bend right=15] node  [below] {$a$}       (q_1)
+		(q_1)              edge [bend right=15] node  [above] {$a$}       (q_0)
+		
+		;
+	\end{myauto}
+		(для случаев пересечения и объединения соответственно). В обоих случаях при удалении состояния $BY$ принимаемый язык не меняется, поэтому ни один из автоматов не является минимальным.
+		\item Для регулярного выражения:
+		\[ (a \mid b)^+ (aa \mid bb \mid abab \mid baba)^* (a \mid b)^+\]
+		Построить эквивалентные:
+		\begin{enumerate}
+			\item Недетерминированный конечный автомат
+			\item Недетерминированный конечный автомат без $\varepsilon$-переходов\\
+			
+			\textbf{Решение:}
+			\begin{myauto}
+				\node[state]           (q_1)                {$q_1$};
+				\node[state,initial]   (q_0) [left=of  q_1] {$q_0$};
+				\node[state]           (q_5) [above left=of q_1] {$q_5$};
+				\node[state]           (q_6) [above right=of q_5] {$q_6$};
+				\node[state]           (q_7) [above right=of q_1] {$q_7$};
+				\node[state]           (q_2) [below left=of q_1] {$q_2$};
+				\node[state]           (q_4) [below right=of q_1] {$q_4$};
+				\node[state]           (q_3) [below left=of q_4] {$q_3$};
+				\node[state,accepting] (q_8) [right=of q_1] {$q_8$};
+				
+				\path[->] (q_0) edge [loop above] node [above] {$a, b$} ()
+				edge              node [above] {$a, b$}       (q_1)
+				(q_1) edge        [bend right=15] node  [left] {$a$}       (q_2)
+				edge        [bend right=15] node  [right] {$b$}       (q_5)
+				edge              node [above] {$a,b$}       (q_8)
+				(q_2) edge        node [left] {$b$}       (q_3)
+				edge [bend right=15] node [right] {$a$} (q_1)
+				(q_3) edge              node [right] {$a$}       (q_4)
+				(q_4) edge              node [right] {$b$}       (q_1)
+				(q_5) edge        node [left] {$a$}       (q_6)
+				edge [bend right=15] node [left] {$b$} (q_1)
+				(q_6) edge              node [right] {$b$}       (q_7)
+				(q_7) edge              node [right] {$a$}       (q_1)
+				(q_8) edge [loop above] node [above] {$a, b$} ()
+				;
+			\end{myauto}
+			\item Минимальный полный детерминированный конечный автомат\\
+			
+			\textbf{Решение:} заметим, что все подходяющие под выражение слова имеют длину не менее двух символов. С другой стороны, все такие слова подходят под выражение (т.к. имеют вид $(a\mid b)(a \mid b)^*(a \mid b)$, то есть подходят под $(a\mid b)^+\varepsilon(a \mid b)^+$). Значит, минимальный автомат выглядит следующим образом:
+			\begin{myauto}
+				\node[state, accepting]    (q_2)               {$q_2$};
+				\node[state]               (q_1) [left=of q_2] {$q_1$};
+				\node[state, initial]      (q_0) [left=of q_1] {$q_0$};
+				
+				\path[->] (q_0)    edge node [above] {$a, b$}  (q_1)
+				(q_1)              edge node [above] {$a, b$}  (q_2)
+				(q_2) edge [loop above] node [above] {$a, b$}    ()
+				
+				;
+			\end{myauto}
+		\end{enumerate}
+		\item Построить регулярное выражение, распознающее тот же язык, что и автомат:
+		\begin{myauto}
+			\node[state]           (q_2)                {$q_2$};
+			\node[state,initial]   (q_0) [left=of  q_2] {$q_0$};
+			\node[state]           (q_1) [above=of q_2] {$q_1$};
+			\node[state]           (q_3) [below=of q_2] {$q_3$};
+			\node[state,accepting] (q_4) [right=of q_2] {$q_4$};
+			
+			\path[->] (q_0) edge [loop above] node [above] {$a, b, c$} ()
+			edge              node [above] {$a$}       (q_1)
+			edge              node [above] {$b$}       (q_2)
+			edge              node [above] {$c$}       (q_3)
+			(q_1) edge [loop above] node [above] {$b, c$}    ()
+			edge              node [above] {$a$}       (q_4)
+			(q_2) edge [loop above] node [above] {$a, c$}    ()
+			edge              node [above] {$b$}       (q_4)
+			(q_3) edge [loop above] node [above] {$a, b$}    ()
+			edge              node [above] {$c$}       (q_4)
+			;
+		\end{myauto}
+		\textbf{Решение:} если автомат распознает некоторое слово $\omega x,\ \omega \in \{ a, b, c \}^*,\ x \in \{a, b, c\}$, то $|\omega|_x \geqslant 1$, так как выход из $q_0$ должен был быть совершен по символу $x$. Несложно заметить, что любое слово $\omega x$ с таким свойством принимается автоматом (выход из $q_0$ нужно произвести по последнему вхождению $x$ в $\omega$). Это свойство можно записать в виде регулярного выражения следующим образом:
+		\[ [a \mhyphen c]^*(a[a \mhyphen c]^*a \mid b[a \mhyphen c]^*b \mid c[a \mhyphen c]^*c)\]
+		\item Определить, является ли автоматным язык $\{ \omega \omega^r \mid \omega \in \{ 0, 1 \}^* \}$. Если является --- построить автомат, иначе --- доказать.
+		
+		\textbf{Решение:} предположим, что язык является автоматным. Тогда, по теореме о накачке, для достаточно большого $N$ $\exists x,y,z: 1^N001^N = xyz,\ |y| > 0,\ |xy| < N$ и $xyyz$ тоже лежит в языке. Но $xyyz = 1^{(N + |y|)}001^N$, то есть это слово не является палиндромом, что приводит к противоречию. Таким образом, язык не является автоматным.
+		
+		\item Определить, является ли автоматным язык $\{ u a a v \mid u, v \in \{ a, b \}^* , |u|_b \geq |v|_a \}$. Если является --- построить автомат, иначе --- доказать.\\
+		
+		\textbf{Решение:} предположим, что язык является автоматным. Применим теорему о накачке к слову $b^naa(ba)^n = xyz$ (для $n$ из условия теоремы). Тогда $y \in\{b\}^*$, так как $|xy| \leqslant n$. Тогда слово $xz = b^{(n - |y|)}aa(ba)^n$ должно лежать в языке, но оно не лежит, так как это слово единственным способом представляется в виде  $uaav$ и при этом $|u|_b = n - |y| < n = |v|_a$. Получаем противоречие, тем самым доказав, что язык не является автоматным.
+	\end{enumerate}
+	
+	\newpage
+	
+	\begin{center}
+		\Large{Пример применения алгоритма минимизации}
+	\end{center}
+	
+	\bigskip
+	
+	Минимизируем данный автомат:
+	
+	\begin{center}
+		\begin{tikzpicture}[> = stealth,node distance=3cm, on grid]
+		\node[state]           (q_2)                      {C};
+		\node[state,initial]   (q_0) [above left=of q_2]  {A};
+		\node[state]           (q_1) [below left=of q_2]  {B};
+		\node[state]           (q_3) [right=of q_2]       {D};
+		\node[state]           (q_4) [above right=of q_3] {E};
+		\node[state,accepting] (q_5) [below right=of q_3] {F};
+		\node[state,accepting] (q_6) [above right=of q_5] {G};
+		
+		\path[->] (q_0) edge [bend left=15]  node [right] {$1$} (q_1)
+		edge                 node [above] {$0$} (q_2)
+		(q_1) edge [bend left=15]  node [left]  {$1$} (q_0)
+		edge                 node [below] {$0$} (q_2)
+		(q_2) edge [bend right=15] node [below] {$1$} (q_3)
+		edge [bend left=15]  node [above] {$0$} (q_3)
+		(q_3) edge                 node [below] {$1$} (q_5)
+		edge                 node [above] {$0$} (q_4)
+		(q_4) edge                 node [above] {$1$} (q_6)
+		edge                 node [right] {$0$} (q_5)
+		(q_5) edge [loop below]    node         {$1$} ()
+		edge [loop left]     node         {$0$} ()
+		(q_6) edge                 node [below] {$1$} (q_5)
+		edge [loop right]    node         {$0$} ();
+		\end{tikzpicture}
+	\end{center}
+	
+	Автомат полный, в нем нет недостижимых вершин --- продолжаем.
+	
+	Строим обратное $\delta$ отображение.
+	
+	\begin{tabular}{c|c|c}
+		$\delta^{-1}$ & 0 & 1 \\ \hline
+		A & --- & B \\
+		B & --- & A \\
+		C & A B & --- \\
+		D & C & C \\
+		E & D & --- \\
+		F & E F & D F G \\
+		G & G & E
+	\end{tabular}
+	
+	Отмечаем в таблице и добавляем в очередь пары состояний, различаемых словом $\varepsilon$: все пары, один элемент которых --- терминальное состояние, а второй --- не терминальное состояние. Для данного автомата это пары
+	
+	$(A, F), (B, F), (C, F), (D, F), (E,F), (A, G), (B, G), (C, G), (D, G), (E, G)$
+	
+	Дальше итерируем процесс определения неэквивалентных состояний, пока очередь не оказывается пуста.
+	
+	$(A, F)$ не дает нам новых неэквивалентных пар. Для $(B, F)$ находится 2 пары: $(A, D), (A, G)$. Первая пара не отмечена в таблице --- отмечаем и добавляем в очередь. Вторая пара уже отмечена в таблице, значит, ничего делать не надо. Переходим к следующей паре из очереди. Итерируем дальше, пока очередь не опустошится.
+	
+	Результирующая таблица (заполнен только треугольник, потому что остальное симметрично) и порядок добавления пар в очередь.
+	
+	\begin{tabular}{c|cc|cc|cc|c}
+		& A & B & C & D & E & F & G \\ \hline
+		A &&&&&&& \\
+		B &&&&&&& \\ \hline
+		C & \checkmark & \checkmark &&&&& \\
+		D & \checkmark & \checkmark & \checkmark &&&& \\ \hline
+		E & \checkmark & \checkmark & \checkmark & \checkmark &&& \\
+		F & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark && \\ \hline
+		G & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark && \\
+	\end{tabular}
+	
+	Очередь:
+	
+	$
+	(A, F), (B, F), (C, F), (D, F), (E,F), (A, G), (B, G), (C, G), (D, G), (E, G),
+	$
+	
+	$
+	(B, D), (A, D), (A, E), (B, E), (C, E), (C, D), (D, E), (A,C), (B, C))
+	$
+	
+	В таблице выделились классы эквивалентных вершин: $\{A, B\}, \{C\}, \{D\}, \{E\}, \{F,G\}$. Остается только нарисовать результирующий автомат с вершинами-классами. Переходы добавляются тогда, когда из какого-нибудь состояния первого класса есть переход в какое-нибудь состояние второго класса. Минимизированный автомат:
+	
+	\begin{center}
+		\begin{tikzpicture}[> = stealth,node distance=3cm, on grid]
+		\node[state,initial]   (q_01)                     {AB};
+		\node[state]           (q_2)  [right=of q_01]      {C};
+		\node[state]           (q_3)  [right=of q_2]       {D};
+		\node[state]           (q_4)  [above right=of q_3] {E};
+		\node[state,accepting] (q_56) [below right=of q_3] {FG};
+		
+		\path[->] (q_01) edge [loop above]    node [above] {$1$} ()
+		edge                 node [above] {$0$} (q_2)
+		(q_2)  edge [bend right=15] node [below] {$1$} (q_3)
+		edge [bend left=15]  node [above] {$0$} (q_3)
+		(q_3)  edge                 node [below] {$1$} (q_56)
+		edge                 node [above] {$0$} (q_4)
+		(q_4)  edge [bend right=15] node [left]  {$1$} (q_56)
+		edge [bend left=15]  node [right] {$0$} (q_56)
+		(q_56) edge [loop below]    node         {$1$} ()
+		edge [loop left]     node         {$0$} ();
+		\end{tikzpicture}
+	\end{center}
+	
 \end{document}
