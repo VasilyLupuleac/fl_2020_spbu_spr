@@ -2,10 +2,10 @@ module Test.Expr where
 
 import           AST                 (AST (..), Operator (..))
 import           Combinators         (Parser (..), Result (..), runParser,
-                                      symbol)
+                                      symbol, prefix)
 import           Control.Applicative ((<|>))
 import           Expr                (Associativity (..), evaluate, parseExpr,
-                                      parseNum, parseOp, toOperator, uberExpr, parseIdent)
+                                      parseNum, opParser, toOperator, uberExpr, parseIdent)
 import           Test.Tasty.HUnit    (Assertion, (@?=), assertBool)
 
 predErrorMsg :: String
@@ -64,13 +64,34 @@ unit_parseIdent = do
     assertBool "" $ isFailure $ runParser parseIdent "123"
     assertBool "" $ isFailure $ runParser parseIdent ""
 
-unit_parseOp :: Assertion
-unit_parseOp = do
-    runParser parseOp "+1" @?= Success "1" Plus
-    runParser parseOp "**" @?= Success "*" Mult
-    runParser parseOp "-2" @?= Success "2" Minus
-    runParser parseOp "/1" @?= Success "1" Div
-    assertBool "" $ isFailure (runParser parseOp "12")
+unit_opParser :: Assertion
+unit_opParser = do
+    runParser (opParser "+") "+1" @?= Success "1" Plus
+    runParser (opParser "*") "**" @?= Success "*" Mult
+    runParser (opParser "-") "-2" @?= Success "2" Minus
+    runParser (opParser "/") "/8" @?= Success "8" Div
+    runParser (opParser "^") "^>_<^" @?= Success ">_<^" Pow
+    runParser (opParser ">") ">=19" @?= Success "=19" Gt
+    runParser (opParser ">=") ">=19" @?= Success "19" Ge
+    runParser (opParser "<") "<3" @?= Success "3" Lt
+    runParser (opParser "<=") "<=>" @?= Success ">" Le
+    runParser (opParser "==") "==b" @?= Success "b" Equal
+    runParser (opParser "/=") "/=b" @?= Success "b" Nequal
+    runParser (opParser "&&") "&&True" @?= Success "True" And
+    runParser (opParser "||") "||False" @?= Success "False" Or
+    assertBool "" $ isFailure (runParser (opParser "+") "_!+")
+    assertBool "" $ isFailure (runParser (opParser "*") "+*2")
+    assertBool "" $ isFailure (runParser (opParser "-") ">-<")
+    assertBool "" $ isFailure (runParser (opParser "/") "=//")
+    assertBool "" $ isFailure (runParser (opParser "^") "0^1")
+    assertBool "" $ isFailure (runParser (opParser ">") "1>2")
+    assertBool "" $ isFailure (runParser (opParser ">=") ">>=")
+    assertBool "" $ isFailure (runParser (opParser "<") ">=<")
+    assertBool "" $ isFailure (runParser (opParser "<=") "<<=")
+    assertBool "" $ isFailure (runParser (opParser "==") "=12==")
+    assertBool "" $ isFailure (runParser (opParser "/=") "")
+    assertBool "" $ isFailure (runParser (opParser "&&") "&||&&")
+    assertBool "" $ isFailure (runParser (opParser "||") "|&&||")
 
 unit_parseExpr :: Assertion
 unit_parseExpr = do
@@ -97,12 +118,12 @@ unit_parseExpr = do
     runParser parseExpr "1&&x" @?= Success "" (BinOp And (Num 1) (Ident "x"))
     runParser parseExpr "1||x" @?= Success "" (BinOp Or (Num 1) (Ident "x"))
     runParser parseExpr "(1==x+2)||3*4<y-5/6&&(7/=z^8)||(id>12)&&abc<=13||xyz>=42" @?=
-    runParser parseExpr "(1==(x+2))||(((3*4)<(y-(5/6))&&(7/=(z^8)))||(((id>12)&&(abc<=13))||(xyz>=42)))"
+      runParser parseExpr "(1==(x+2))||(((3*4)<(y-(5/6))&&(7/=(z^8)))||(((id>12)&&(abc<=13))||(xyz>=42)))"
 
-mult  = symbol '*' >>= toOperator
-sum'  = symbol '+' >>= toOperator
-minus = symbol '-' >>= toOperator
-div'  = symbol '/' >>= toOperator
+mult  = prefix "*" >>= toOperator
+sum'  = prefix "+" >>= toOperator
+minus = prefix "-" >>= toOperator
+div'  = prefix "/" >>= toOperator
 
 expr1 :: Parser String String AST
 expr1 =

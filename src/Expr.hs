@@ -3,7 +3,7 @@ module Expr where
 import           Control.Applicative (Alternative (..))
 import           AST         (AST (..), Operator (..))
 import           Combinators
-import           Data.Char   (digitToInt, isDigit)
+import           Data.Char   (digitToInt, isDigit, isLetter)
 
 data Associativity
   = LeftAssoc  -- 1 @ 2 @ 3 @ 4 = (((1 @ 2) @ 3) @ 4)
@@ -28,38 +28,61 @@ uberExpr ops term ast = foldr f term ops where
 -- В строке могут быть скобки
 
 parseExpr :: Parser String String AST
-parseExpr = uberExpr [(opParser '+' <|> opParser '-', LeftAssoc),
-                      (opParser '*' <|> opParser '/', LeftAssoc),
-                      (opParser '^', RightAssoc)]
-                      (Num <$> parseNum <|> symbol '(' *> parseExpr <* symbol ')')
+parseExpr = uberExpr [(opParser "||", RightAssoc),
+                      (opParser "&&", RightAssoc),
+                      (opParser "==" <|> opParser "/=" <|>
+                       opParser "<=" <|> opParser "<"  <|>
+                       opParser ">=" <|> opParser ">", NoAssoc),
+                      (opParser "+" <|> opParser "-", LeftAssoc),
+                      (opParser "*" <|> opParser "/", LeftAssoc),
+                      (opParser "^", RightAssoc)]
+                      (Num <$> parseNum <|> 
+                       symbol '(' *> parseExpr <* symbol ')' <|> 
+                       Ident <$> parseIdent)
                       BinOp
                       
 
 -- Парсер для целых чисел
+parseUnMinus :: Parser String String (Int -> Int)
+parseUnMinus = (.) <$> parseMinus <*> parseUnMinus <|> pure id where
+  parseMinus = (0 -) <$ symbol '-'
+  
 parseNum :: Parser String String Int
-parseNum = foldl (\acc d -> 10 * acc + digitToInt d) 0 <$> go
+parseNum = parseUnMinus <*> (foldl (\acc d -> 10 * acc + digitToInt d) 0 <$> go)
   where
     go :: Parser String String String
     go = some (satisfy isDigit)
 
 parseIdent :: Parser String String String
-parseIdent = error "parseIdent undefined"
+parseIdent = (:) <$> (pltr <|> p_) <*> many (pltr <|> p_ <|> pdgt)
+  where 
+    p_   = symbol '_'
+    pltr = satisfy isLetter
+    pdgt = satisfy isDigit
 
 -- Парсер для операторов
-parseOp :: Parser String String Operator
-parseOp = elem' >>= toOperator
+--parseOp :: Parser String String Operator
+--parseOp = elem' >>= toOperator
 
-opParser :: Char -> Parser String String Operator
-opParser x = symbol x >>= toOperator
+opParser :: String -> Parser String String Operator
+opParser x = prefix x >>= toOperator
 
--- Преобразование символов операторов в операторы
-toOperator :: Char -> Parser String String Operator
-toOperator '+' = pure Plus
-toOperator '*' = pure Mult
-toOperator '-' = pure Minus
-toOperator '/' = pure Div
-toOperator '^' = pure Pow
-toOperator _   = fail' "Failed toOperator"
+-- Преобразование знаков операторов в операторы
+toOperator :: String -> Parser String String Operator
+toOperator "+"  = pure Plus
+toOperator "*"  = pure Mult
+toOperator "-"  = pure Minus
+toOperator "/"  = pure Div
+toOperator "^"  = pure Pow
+toOperator "=="  = pure Equal
+toOperator "/=" = pure Nequal
+toOperator ">=" = pure Ge
+toOperator ">"  = pure Gt
+toOperator "<=" = pure Le
+toOperator "<"  = pure Lt
+toOperator "&&" = pure And
+toOperator "||" = pure Or
+toOperator _    = fail' "Failed toOperator"
 
 evaluate :: String -> Maybe Int
 evaluate input = do

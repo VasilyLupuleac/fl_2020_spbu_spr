@@ -58,6 +58,10 @@ sepBy1r sep elem = (,) <$> many ((,) <$> elem <*> sep) <*> elem
 symbol :: Char -> Parser String String Char
 symbol c = satisfy (== c)
 
+-- Проверяет, что последовательность начинается на данную строку
+prefix :: String -> Parser String String String
+prefix s  = foldr (\x y -> (:) <$> x <*> y) (pure "") $ symbol <$> s
+
 -- Успешно завершается, если последовательность содержит как минимум один элемент
 elem' :: (Show a) => Parser String [a] a
 elem' = satisfy (const True)

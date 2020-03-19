@@ -1,7 +1,7 @@
 module Test.Combinators where
 
 import           Combinators      (Parser, Result (..), elem', runParser,
-                                   satisfy, sepBy1, symbol)
+                                   satisfy, sepBy1, symbol, prefix)
 import           Test.Tasty.HUnit (Assertion, (@?=))
 import           Control.Applicative (Alternative (..))
 
@@ -20,6 +20,14 @@ unit_satisfy = do
     runParser (satisfy (== '1')) "1234" @?= Success "234" '1'
     runParser digit "1234" @?= Success "234" '1'
     runParser digit "blah" @?= Failure predErrMsg
+
+unit_prefix :: Assertion
+unit_prefix = do
+    runParser (prefix "12") "1234" @?= Success "34" "12"
+    runParser (prefix "123") "1123" @?= Failure predErrMsg
+    runParser (prefix "_a") "_a_a" @?= Success "_a" "_a"
+    runParser (prefix "aaa") "aa" @?= Failure emptyErrMsg
+    runParser (prefix "a") "" @?= Failure emptyErrMsg
 
 unit_elem :: Assertion
 unit_elem = do
