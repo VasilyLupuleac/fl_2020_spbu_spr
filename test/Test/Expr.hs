@@ -8,6 +8,9 @@ import           Expr                (Associativity (..), evaluate, parseExpr,
                                       parseNum, parseOp, toOperator, uberExpr, parseIdent)
 import           Test.Tasty.HUnit    (Assertion, (@?=), assertBool)
 
+predErrorMsg :: String
+predErrorMsg = "Predicate failed"
+
 isFailure (Failure _) = True
 isFailure  _          = False
 
@@ -94,7 +97,7 @@ unit_parseExpr = do
     runParser parseExpr "1&&x" @?= Success "" (BinOp And (Num 1) (Ident "x"))
     runParser parseExpr "1||x" @?= Success "" (BinOp Or (Num 1) (Ident "x"))
     runParser parseExpr "(1==x+2)||3*4<y-5/6&&(7/=z^8)||(id>12)&&abc<=13||xyz>=42" @?=
-      runParser parseExpr "(1==(x+2))||(((3*4)<(y-(5/6))&&(7/=(z^8)))||(((id>12)&&(abc<=13))||(xyz>=42)))"
+    runParser parseExpr "(1==(x+2))||(((3*4)<(y-(5/6))&&(7/=(z^8)))||(((id>12)&&(abc<=13))||(xyz>=42)))"
 
 mult  = symbol '*' >>= toOperator
 sum'  = symbol '+' >>= toOperator
