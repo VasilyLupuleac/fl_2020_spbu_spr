@@ -1,0 +1,83 @@
+\documentclass[12pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{enumerate}
+\usepackage{mathdots}
+        
+\def\to{\rightarrow}
+\def\b{\textbf}
+\def\t{\textrm}
+
+\newcommand{\divby}{\mathop{\raisebox{-2pt}{$\vdots$}}}
+
+\newenvironment{Problems}{
+	\begin{enumerate}[]
+	}{       
+	\end{enumerate}
+}
+
+\begin{document}
+	\b{Домашнее задание №5.\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \  Лупуляк Василий}
+	
+	\begin{Problems}
+		\item [\fbox{2.}] Привести в НФХ грамматику 
+		\begin{center}
+			$S$ -- стартовый нетерминал\\
+			$S \to RS \mid R$\\
+			$R \to aSb \mid cRd \mid ab \mid cd \mid \varepsilon$
+		\end{center}
+		Добавим новый стартовый нетерминал: 
+		\begin{center}
+			$S'$ -- стартовый нетерминал\\
+			$S' \to S$\\
+			$S \to RS \mid R$\\
+			$R \to aSb \mid cRd \mid ab \mid cd \mid \varepsilon$
+		\end{center}
+		Удалим длинные правила: 
+		\begin{center}
+			$S' \to S$\\
+			$S \to RS \mid R$\\
+			$R \to aS_b \mid cR_d \mid ab \mid cd \mid \varepsilon$\\
+			$R_d \to Rd$\\
+			$S_b \to Sb$
+		\end{center}
+		Удалим $\varepsilon$-правила:
+		\begin{center}
+			$S' \to S \mid \varepsilon$\\
+			$S \to RS \mid R \mid S$\\
+			$R \to aS_b \mid cR_d \mid ab \mid cd$\\
+			$R_d \to Rd \mid d$\\
+			$S_b \to Sb \mid b$
+		\end{center}
+		Удалим цепные правила:
+		\begin{center}
+			$S' \to RS \mid aS_b \mid cR_d \mid ab \mid cd \mid \varepsilon$\\
+			$S \to RS \mid aS_b \mid cR_d \mid ab \mid cd$\\
+			$R \to aS_b \mid cR_d \mid ab \mid cd$\\
+			$R_d \to Rd \mid d$\\
+			$S_b \to Sb \mid b$
+		\end{center}
+		Бесполезных нетерминалов нет. Осталось привести правые части к нужному виду:
+		\begin{center}
+			$S'$ -- стартовый нетерминал\\
+			$S' \to RS \mid AS_b \mid CR_d \mid AB \mid CD \mid \varepsilon$\\
+			$S \to RS \mid AS_b \mid CR_d \mid AB \mid CD$\\
+			$R \to AS_b \mid CR_d \mid AB \mid CD$\\
+			$R_d \to RD \mid d$\\
+			$S_b \to SB \mid b$\\
+			$A \to a$\\
+			$B \to b$\\
+			$C \to c$\\
+			$D \to d$
+		\end{center}
+		\item [\fbox{3.}] Построить КС грамматику языка $\{a^m b^n \mid m + n > 0,\ (m + n) \divby 2\}$.\\
+		Слова имеют следующий вид: либо каждой из букв нечетное количество, либо каждой четное и одной из букв хотя бы две. Значит, любое слово получается из слов $ab,\ aa,\t{или}\ bb$ добавлением четного количества букв $a$ слева и букв $b$ справа. Значит, грамматику можно записать следующим образом: 
+		\begin{center}
+			$S$ -- стартовый нетерминал\\
+			$S \to aS'b \mid aaS' \mid S'bb$\\
+			$S' \to aaS' \mid S'bb \mid \varepsilon$\\
+		\end{center}		
+	\end{Problems}
+	
+\end{document}
