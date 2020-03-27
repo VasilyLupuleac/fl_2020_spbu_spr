@@ -67,13 +67,13 @@
 * `var x`
 * `{var y = -2 + (2)}`
 * `if (1) {} else {}`
-*```{
-		var n;
-		read(n);
-		while (n > 1) {
-			if (n % 2) 
-				n = 3 * n + 1
-			else
-				n = n / 2
-		}
+* ``` 
+	{var n;
+	read(n);
+	while (n > 1) {
+		if (n % 2) 
+			n = 3 * n + 1
+		else
+			n = n / 2
 	}
+ }
