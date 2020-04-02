@@ -1,9 +1,9 @@
 module Expr where
 
 import           AST         (AST (..), Operator (..))
-import           Combinators (Parser (..), Result (..), bind', elem', fail',
-                              fmap', satisfy, some', success)
-import           Data.Char   (digitToInt, isDigit)
+import           Combinators
+import           Data.Char   (digitToInt, isDigit, isLetter)
+import           Control.Applicative
 
 data Associativity
   = LeftAssoc  -- 1 @ 2 @ 3 @ 4 = (((1 @ 2) @ 3) @ 4)
@@ -19,12 +19,13 @@ uberExpr :: Monoid e
          -> (op -> ast -> ast -> ast) -- конструктор узла дерева для бинарной операции
          -> (op -> ast -> ast)        -- конструктор узла для унарной операции
          -> Parser e i ast
-uberExpr ops term ast = foldr f term ops where
-  opFoldl a (op, b) = ast op a b
-  opFoldr (a, op) b = ast op a b
-  f (op, Binary NoAssoc)    expr = (\a op b -> ast op a b) <$> expr <*> op <*> expr <|> expr
+uberExpr ops term binAst unAst = foldr f term ops where
+  opFoldl a (op, b) = binAst op a b
+  opFoldr (a, op) b = binAst op a b
+  f (op, Unary)             expr = (\unOp a -> unAst unOp a) <$> op <*> expr <|> expr
+  f (op, Binary NoAssoc)    expr = (\a binOp b -> binAst binOp a b) <$> expr <*> op <*> expr <|> expr
   f (op, Binary LeftAssoc)  expr = (uncurry $ foldl opFoldl) <$> sepBy1l op expr
-  f (op, Binary RightAssoc) expr = (uncurry. flip $ foldr opFoldr) <$> sepBy1r op expr
+  f (op, Binary RightAssoc) expr = (uncurry. flip $ foldr opFoldr) <$> sepBy1r op expr <|> expr
 
 -- Парсер для выражений над +, -, *, /, ^ (возведение в степень)
 -- с естественными приоритетами и ассоциативностью над натуральными числами с 0.
@@ -33,27 +34,27 @@ uberExpr ops term ast = foldr f term ops where
 parseExpr :: Parser String String AST
 parseExpr = uberExpr [(opParser "||", Binary RightAssoc),
                       (opParser "&&", Binary RightAssoc),
-					  (opParser "!", Unary),
+                      (opParser "!", Unary),
                       (opParser "==" <|> opParser "/=" <|>
                        opParser "<=" <|> opParser "<"  <|>
                        opParser ">=" <|> opParser ">", Binary NoAssoc),
                       (opParser "+" <|> opParser "-", Binary LeftAssoc),
                       (opParser "*" <|>
-					   opParser "/" <|> opParser "%", Binary LeftAssoc),
+                       opParser "/" <|> opParser "%", Binary LeftAssoc),
                       (opParser "-", Unary),
                       (opParser "^", Binary RightAssoc)]
                       (Num <$> parseNum <|> 
                        symbol '(' *> parseExpr <* symbol ')' <|> 
                        Ident <$> parseIdent)
                       BinOp
-					  UnaryOp
+                      UnaryOp
 
 -- Парсер для целых чисел
 parseNum :: Parser String String Int
-parseNum = foldl (\acc d -> 10 * acc + digitToInt d) 0 `fmap'` go
+parseNum = foldl (\acc d -> 10 * acc + digitToInt d) 0 <$> go
   where
     go :: Parser String String String
-    go = some' (satisfy isDigit)
+    go = some (satisfy isDigit)
 
 parseIdent :: Parser String String String
 parseIdent = (:) <$> (pltr <|> p_) <*> many (pltr <|> p_ <|> pdgt)
@@ -61,7 +62,7 @@ parseIdent = (:) <$> (pltr <|> p_) <*> many (pltr <|> p_ <|> pdgt)
     p_   = symbol '_'
     pltr = satisfy isLetter
     pdgt = satisfy isDigit
-	
+    
 opParser :: String -> Parser String String Operator
 opParser x = prefix x >>= toOperator
 
@@ -89,7 +90,7 @@ evaluate input = do
     Success rest ast | null rest -> return $ compute ast
     _                            -> Nothing
 
---Соответствие между логическими и целочисленными значениями
+-- Соответствие между логическими и целочисленными значениями
 
 fromBool :: Bool -> Int
 fromBool False = 0
@@ -116,5 +117,5 @@ compute (BinOp Nequal x y) = fromBool $ compute x /= compute y
 compute (BinOp And x y)    = fromBool $ (toBool $ compute x) && (toBool $ compute y)
 compute (BinOp Or x y)     = fromBool $ (toBool $ compute x) || (toBool $ compute y)
 compute (UnaryOp Minus x)  = 0 - compute x
-compute (UnaryOp Not x)    = fromBool $ x == 0
+compute (UnaryOp Not x)    = fromBool $ compute x == 0
 

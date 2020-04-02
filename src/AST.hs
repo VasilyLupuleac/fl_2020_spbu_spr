@@ -6,7 +6,7 @@ data Operator = Plus
               | Mult
               | Minus
               | Div
-			  | Mod
+              | Mod
               | Pow
               | Equal
               | Nequal
