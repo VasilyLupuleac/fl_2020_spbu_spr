@@ -39,11 +39,6 @@ stmt =
 ws :: Parser String String String
 ws = many $ satisfy isSpace
 
--- Парсер для выражений
-
-parseLExpr :: Parser String String Expr
-parseLExpr = Parser $ \inp -> runParser parseExpr (filter (not . isSpace) inp)
-
 -- Парсеры для команд
   
 parseIf :: Parser String String LAst
@@ -55,7 +50,7 @@ parseIf = let
     return els
   in do 
     prefix "if" <* ws
-    cond <- symbol '(' *> parseLExpr <* symbol ')'
+    cond <- symbol '(' *> parseExpr <* symbol ')'
     thn <- parseL
     els <- parseElse <|> pure (Seq [])
     return $ If cond thn els
@@ -63,7 +58,7 @@ parseIf = let
 parseWhile :: Parser String String LAst
 parseWhile = do
   prefix "while" <* ws
-  cond <- symbol '(' *> parseLExpr <* symbol ')'
+  cond <- symbol '(' *> parseExpr <* symbol ')'
   body <- parseL
   return $ While cond body
 
@@ -71,7 +66,7 @@ parseAssign :: Parser String String LAst
 parseAssign = do
   var <- parseIdent
   ws *> symbol '='
-  expr <- parseLExpr
+  expr <- parseExpr
   return $ Assign var expr
   
 parseRead :: Parser String String LAst
@@ -86,7 +81,7 @@ parseWrite :: Parser String String LAst
 parseWrite = do
   prefix "print" <* ws
   symbol '('
-  expr <- parseLExpr
+  expr <- parseExpr
   ws <* symbol ')'
   return $ Write expr
 
@@ -100,7 +95,7 @@ parseSeq = do
 parseL :: Parser String String LAst
 parseL = ws *> (parseIf <|> parseWhile <|> 
                 parseAssign <|> parseRead <|>
-				parseWrite <|> parseSeq) <* ws
+                parseWrite <|> parseSeq) <* ws
 
 
 

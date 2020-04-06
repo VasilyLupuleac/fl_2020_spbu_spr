@@ -2,7 +2,7 @@ module Expr where
 
 import           AST         (AST (..), Operator (..))
 import           Combinators
-import           Data.Char   (digitToInt, isDigit, isLetter)
+import           Data.Char   (digitToInt, isDigit, isLetter, isSpace)
 import           Control.Applicative
 
 data Associativity
@@ -22,17 +22,17 @@ uberExpr :: Monoid e
 uberExpr ops term binAst unAst = foldr f term ops where
   opFoldl a (op, b) = binAst op a b
   opFoldr (a, op) b = binAst op a b
-  f (op, Unary)             expr = (\unOp a -> unAst unOp a) <$> op <*> expr <|> expr
-  f (op, Binary NoAssoc)    expr = (\a binOp b -> binAst binOp a b) <$> expr <*> op <*> expr <|> expr
-  f (op, Binary LeftAssoc)  expr = (uncurry $ foldl opFoldl) <$> sepBy1l op expr
-  f (op, Binary RightAssoc) expr = (uncurry. flip $ foldr opFoldr) <$> sepBy1r op expr <|> expr
+  f (op, Unary) expr             = (\op a -> unAst op a) <$> op <*> expr <|> expr
+  f (op, Binary NoAssoc) expr    = (\a op b -> binAst op a b) <$> expr <*> op <*> expr <|> expr
+  f (op, Binary LeftAssoc) expr  = ((uncurry $ foldl opFoldl) <$> sepBy1l op expr) <|> expr
+  f (op, Binary RightAssoc) expr = ((uncurry. flip $ foldr opFoldr) <$> sepBy1r op expr) <|> expr
 
 -- Парсер для выражений над +, -, *, /, ^ (возведение в степень)
 -- с естественными приоритетами и ассоциативностью над натуральными числами с 0.
 -- В строке могут быть скобки
 
 parseExpr :: Parser String String AST
-parseExpr = uberExpr [(opParser "||", Binary RightAssoc),
+parseExpr = parseWS *> uberExpr [(opParser "||", Binary RightAssoc),
                       (opParser "&&", Binary RightAssoc),
                       (opParser "!", Unary),
                       (opParser "==" <|> opParser "/=" <|>
@@ -47,7 +47,7 @@ parseExpr = uberExpr [(opParser "||", Binary RightAssoc),
                        symbol '(' *> parseExpr <* symbol ')' <|> 
                        Ident <$> parseIdent)
                       BinOp
-                      UnaryOp
+                      UnaryOp <* parseWS
 
 -- Парсер для целых чисел
 parseNum :: Parser String String Int
@@ -62,9 +62,12 @@ parseIdent = (:) <$> (pltr <|> p_) <*> many (pltr <|> p_ <|> pdgt)
     p_   = symbol '_'
     pltr = satisfy isLetter
     pdgt = satisfy isDigit
-    
+
+parseWS :: Parser String String String
+parseWS = many $ satisfy isSpace
+
 opParser :: String -> Parser String String Operator
-opParser x = prefix x >>= toOperator
+opParser x = (parseWS *> prefix x <* parseWS) >>= toOperator
 
 -- Преобразование знаков операторов в операторы
 toOperator :: String -> Parser String String Operator
@@ -82,6 +85,7 @@ toOperator "<=" = pure Le
 toOperator "<"  = pure Lt
 toOperator "&&" = pure And
 toOperator "||" = pure Or
+toOperator "!"  = pure Not
 toOperator _    = fail' "Failed toOperator"
 
 evaluate :: String -> Maybe Int
