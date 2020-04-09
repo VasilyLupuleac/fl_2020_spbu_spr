@@ -17,15 +17,15 @@ data Operator = Plus
               | And
               | Or
               | Not
-              deriving (Eq)
+              deriving (Eq, Show)
 
 data AST = BinOp Operator AST AST
          | UnaryOp Operator AST
          | Ident String
          | Num  Int
-         deriving (Eq)
+         deriving (Eq, Show)
 
-instance Show Operator where
+{--instance Show Operator where
   show Plus   = "+"
   show Mult   = "*"
   show Minus  = "-"
@@ -52,5 +52,5 @@ instance Show AST where
           UnaryOp op x -> printf "%s\n%s" (show op) (go (ident n) x)
           Ident x -> x
           Num i -> show i
-      ident = (+1)
+      ident = (+1)--}
 
