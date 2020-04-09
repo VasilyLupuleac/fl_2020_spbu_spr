@@ -5,6 +5,7 @@ import           AST
 import           Expr
 import           Combinators
 import           Test.Tasty.HUnit    (Assertion, (@?=), assertBool)
+import qualified Data.Map as Map
 
 isFailure (Failure _) = True
 isFailure  _          = False

@@ -42,7 +42,7 @@ evalExpr subst (BinOp Le x y)     = fromBool <$> ((<=) <$> evalExpr subst x <*> 
 evalExpr subst (BinOp Equal x y)  = fromBool <$> ((==) <$> evalExpr subst x <*> evalExpr subst y)
 evalExpr subst (BinOp Nequal x y) = fromBool <$> ((/=) <$> evalExpr subst x <*> evalExpr subst y)
 evalExpr subst (BinOp And x y)    = fromBool <$> ((&&) <$> (toBool <$> evalExpr subst x) <*> (toBool <$> evalExpr subst y))
-evalExpr subst (BinOp Or x y)     = fromBool <$> ((&&) <$> (toBool <$> evalExpr subst x) <*> (toBool <$> evalExpr subst y))
+evalExpr subst (BinOp Or x y)     = fromBool <$> ((||) <$> (toBool <$> evalExpr subst x) <*> (toBool <$> evalExpr subst y))
 evalExpr subst (UnaryOp Minus x)  = (0-) <$> evalExpr subst x
 evalExpr subst (UnaryOp Not x)    = fromBool <$> ((==0) <$> evalExpr subst x)
 

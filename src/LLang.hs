@@ -1,6 +1,6 @@
 module LLang where
 
-import AST (AST (..), Operator (..))
+import AST (AST (..), Operator (..), Subst (..))
 import Combinators
 import Expr
 import Control.Applicative
@@ -107,4 +107,46 @@ initialConf :: [Int] -> Configuration
 initialConf input = Conf Map.empty input []
 
 eval :: LAst -> Configuration -> Maybe Configuration
-eval = error "eval not defined"
+
+eval (If cond thn els) conf = 
+  case evalExpr (subst conf) cond of
+    Nothing -> Nothing
+    Just 0  -> eval els conf
+    _       -> eval thn conf
+
+eval (While cond body) conf = 
+  case evalExpr (subst conf) cond of
+    Nothing -> Nothing
+    Just 0  -> Just conf
+    _       ->
+      case eval body conf of
+        Nothing    -> Nothing
+        Just conf' -> eval (While cond body) conf'
+
+eval (Assign var expr) (Conf subst i o) =
+  case evalExpr subst expr of
+    Nothing -> Nothing
+    Just x  -> Just $ Conf (Map.insert var x subst) i o
+
+eval (Read var) (Conf _ [] _)             = Nothing
+eval (Read var) (Conf subst (x:input') o) = Just $
+  Conf (Map.insert var x subst) input' o
+
+eval (Write expr) (Conf subst i output) = 
+  case evalExpr subst expr of
+    Nothing -> Nothing
+    Just x  -> Just $ Conf subst i (x:output)
+
+eval (Seq stmts) conf = foldl (\cnf stmt -> cnf >>= eval stmt) (Just conf) stmts
+
+    
+
+
+
+
+
+
+
+
+
+
