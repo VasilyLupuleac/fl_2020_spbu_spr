@@ -7,6 +7,7 @@ data Operator = Plus
               | Mult
               | Minus
               | Div
+              | Mod
               | Pow
               | Equal
               | Nequal
@@ -17,7 +18,7 @@ data Operator = Plus
               | And
               | Or
               | Not
-              deriving (Eq)
+              deriving (Eq, Show)
 
 type Subst = Map.Map String Int
 
@@ -25,13 +26,14 @@ data AST = BinOp Operator AST AST
          | UnaryOp Operator AST
          | Ident String
          | Num  Int
-         deriving (Eq)
+         deriving (Eq, Show)
 
 instance Show Operator where
   show Plus   = "+"
   show Mult   = "*"
   show Minus  = "-"
   show Div    = "/"
+  show Mod    = "%"
   show Equal  = "="
   show Pow    = "^"
   show Nequal = "/="
