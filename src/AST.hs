@@ -18,7 +18,7 @@ data Operator = Plus
               | And
               | Or
               | Not
-              deriving (Eq, Show)
+              deriving (Eq)
 
 type Subst = Map.Map String Int
 
@@ -26,7 +26,7 @@ data AST = BinOp Operator AST AST
          | UnaryOp Operator AST
          | Ident String
          | Num  Int
-         deriving (Eq, Show)
+         deriving (Eq)
 
 instance Show Operator where
   show Plus   = "+"

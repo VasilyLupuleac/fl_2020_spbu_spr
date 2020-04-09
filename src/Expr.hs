@@ -1,6 +1,6 @@
 module Expr where
 
-import           AST         (AST (..), Operator (..))
+import           AST         (AST (..), Operator (..), Subst)
 import           Combinators
 import           Data.Char   (digitToInt, isDigit, isLetter, isSpace)
 import           Control.Applicative
@@ -14,8 +14,38 @@ data Associativity
 data OpType = Binary Associativity
             | Unary
 
+
+-- Соответствие между логическими и целочисленными значениями
+
+fromBool :: Bool -> Int
+fromBool False = 0
+fromBool True  = 1
+
+toBool :: Int -> Bool
+toBool 0 = False
+toBool _ = True
+
+-- Вычисление выражения
+
 evalExpr :: Subst -> AST -> Maybe Int
-evalExpr = error "evalExpr undefined"
+evalExpr _ (Num x)                = Just x
+evalExpr subst (Ident v)          = Map.lookup v subst
+evalExpr subst (BinOp Plus x y)   = (+) <$> evalExpr subst x <*> evalExpr subst y
+evalExpr subst (BinOp Mult x y)   = (*) <$> evalExpr subst x <*> evalExpr subst y
+evalExpr subst (BinOp Minus x y)  = (-) <$> evalExpr subst x <*> evalExpr subst y
+evalExpr subst (BinOp Div x y)    = (div) <$> evalExpr subst x <*> evalExpr subst y
+evalExpr subst (BinOp Mod x y)    = (mod) <$> evalExpr subst x <*> evalExpr subst y
+evalExpr subst (BinOp Gt x y)     = fromBool <$> ((>) <$> evalExpr subst x <*> evalExpr subst y)
+evalExpr subst (BinOp Ge x y)     = fromBool <$> ((>=) <$> evalExpr subst x <*> evalExpr subst y)
+evalExpr subst (BinOp Lt x y)     = fromBool <$> ((<) <$> evalExpr subst x <*> evalExpr subst y)
+evalExpr subst (BinOp Le x y)     = fromBool <$> ((<=) <$> evalExpr subst x <*> evalExpr subst y)
+evalExpr subst (BinOp Equal x y)  = fromBool <$> ((==) <$> evalExpr subst x <*> evalExpr subst y)
+evalExpr subst (BinOp Nequal x y) = fromBool <$> ((/=) <$> evalExpr subst x <*> evalExpr subst y)
+evalExpr subst (BinOp And x y)    = fromBool <$> ((&&) <$> (toBool <$> evalExpr subst x) <*> (toBool <$> evalExpr subst y))
+evalExpr subst (BinOp Or x y)     = fromBool <$> ((&&) <$> (toBool <$> evalExpr subst x) <*> (toBool <$> evalExpr subst y))
+evalExpr subst (UnaryOp Minus x)  = (0-) <$> evalExpr subst x
+evalExpr subst (UnaryOp Not x)    = fromBool <$> ((==0) <$> evalExpr subst x)
+
 
 uberExpr :: Monoid e
          => [(Parser e i op, OpType)] -- список операций с их арностью и, в случае бинарных, ассоциативностью
@@ -98,15 +128,6 @@ evaluate input = do
     Success rest ast | null rest -> return $ compute ast
     _                            -> Nothing
 
--- Соответствие между логическими и целочисленными значениями
-
-fromBool :: Bool -> Int
-fromBool False = 0
-fromBool True  = 1
-
-toBool :: Int -> Bool
-toBool 0 = False
-toBool _ = True
 
 
 compute :: AST -> Int
@@ -126,4 +147,3 @@ compute (BinOp And x y)    = fromBool $ (toBool $ compute x) && (toBool $ comput
 compute (BinOp Or x y)     = fromBool $ (toBool $ compute x) || (toBool $ compute y)
 compute (UnaryOp Minus x)  = 0 - compute x
 compute (UnaryOp Not x)    = fromBool $ compute x == 0
-
