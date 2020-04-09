@@ -13,22 +13,42 @@ isFailure  _          = False
 
 unit_evaluate :: Assertion
 unit_evaluate = do
-    evaluate "1" @?= Just 1
-    evaluate "1+2" @?= Just (1+2)
-    evaluate "2+4+8" @?= Just (2+4+8)
-    evaluate "11+22" @?= Just (11+22)
-    evaluate "13+42+777" @?= Just (13+42+777)
-    evaluate "31+24+777" @?= Just (31+24+777)
-    evaluate "1+2*3+4" @?= Just (1+2*3+4)
-    evaluate "12+23*34+456" @?= Just (12+23*34+456)
-    evaluate "1-2*3+4" @?= Just (1-2*3+4)
-    evaluate "1-2-3" @?= Just (1-2-3)
-    evaluate "4/2-2" @?= Just (4 `div` 2 - 2)
-    evaluate "(1+2)*(3+4)" @?= Just ((1+2)*(3+4))
-    evaluate "12+(23*(34)+456)" @?= Just (12+(23*(34)+456))
-    evaluate "((1-(2*3))+4)" @?= Just ((1-(2*3))+4)
-    evaluate "1-2+3-4" @?= Just (1-2+3-4)
-    evaluate "6/2*3" @?= Just (6 `div` 2 * 3)
+    evaluate [] "1" @?= Just 1
+    evaluate [] "1+2" @?= Just (1 + 2)
+    evaluate [] "2 + 4 +8" @?= Just (2 + 4 + 8)
+    evaluate [] "11+22" @?= Just (11+22)
+    evaluate [] "13 + 42 + 777" @?= Just (13 + 42 + 777)
+    evaluate [] "31+ 24+777" @?= Just (31 + 24 + 777)
+    evaluate [] "1+2*3+4" @?= Just (1 + 2 * 3 + 4)
+    evaluate [] "12+23*34+456" @?= Just (12 + 23 * 34 + 456)
+    evaluate [] "1-2*3+4" @?= Just (1 - 2 * 3 + 4)
+    evaluate [] "1-2-3" @?= Just (1 - 2 - 3)
+    evaluate [] "4/2-2" @?= Just (4 `div` 2 - 2)
+    evaluate [] "(1+2)*(3+4)" @?= Just ((1 + 2) * (3 + 4))
+    evaluate [] "12+(23 * (34)+456)" @?= Just (12 + (23 * (34) + 456))
+    evaluate [] "((1-(2*3))+4)" @?= Just ((1 - (2 * 3)) + 4)
+    evaluate [] "1-2+3-4" @?= Just (1 - 2 + 3 - 4)
+    evaluate [] "6/2*3" @?= Just (6 `div` 2 * 3)
+    evaluate [("x", 1)] "x" @?= (Just 1)
+    evaluate [("x", 10), ("y", 100)] "x * y" @?= Just 1000
+    evaluate [("x", 10), ("y", 100)] "x + y" @?= Just 110
+    evaluate [("x", 10), ("y", 100)] "x - y" @?= Just (-90)
+    evaluate [("x", 10), ("y", 100)] "y / x" @?= Just 10
+    evaluate [("x", 10), ("y", 100)] "x < y" @?= Just 1
+    evaluate [("x", 10), ("y", 100)] "x <= y" @?= Just 1
+    evaluate [("x", 10)] "x <= x" @?= Just 1
+    evaluate [("x", 10), ("y", 100)] "x > y" @?= Just 0
+    evaluate [("x", 10), ("y", 100)] "x >= y" @?= Just 0
+    evaluate [("x", 224)] "x >= x" @?= Just 1
+    evaluate [("x", 747)] "x == x" @?= Just 1
+    evaluate [("x", 380)] "x /= x" @?= Just 0
+    evaluate [("x", 10), ("y", 100)] "x % y" @?= Just 10
+    evaluate [("x", 10), ("y", 100)] "x % y" @?= Just 10
+    evaluate [("x", 10), ("y", 100)] "x % y" @?= Just 10
+    evaluate [("x", 10), ("y", 2)] "-x ^ y" @?= Just (-100)
+    evaluate [("x", 10), ("y", 3)] "!x" @?= Just 0
+    evaluate [("x", 0), ("y", 1)] "x&&y" @?= Just 0
+    evaluate [("x", 0), ("y", 1)] "x||y" @?= Just 1
 
 unit_parseNum :: Assertion
 unit_parseNum = do

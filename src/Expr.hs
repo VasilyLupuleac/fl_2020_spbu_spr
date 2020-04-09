@@ -35,6 +35,7 @@ evalExpr subst (BinOp Mult x y)   = (*) <$> evalExpr subst x <*> evalExpr subst 
 evalExpr subst (BinOp Minus x y)  = (-) <$> evalExpr subst x <*> evalExpr subst y
 evalExpr subst (BinOp Div x y)    = (div) <$> evalExpr subst x <*> evalExpr subst y
 evalExpr subst (BinOp Mod x y)    = (mod) <$> evalExpr subst x <*> evalExpr subst y
+evalExpr subst (BinOp Pow x y)    = (^) <$> evalExpr subst x <*> evalExpr subst y
 evalExpr subst (BinOp Gt x y)     = fromBool <$> ((>) <$> evalExpr subst x <*> evalExpr subst y)
 evalExpr subst (BinOp Ge x y)     = fromBool <$> ((>=) <$> evalExpr subst x <*> evalExpr subst y)
 evalExpr subst (BinOp Lt x y)     = fromBool <$> ((<) <$> evalExpr subst x <*> evalExpr subst y)
@@ -122,28 +123,8 @@ toOperator "||" = pure Or
 toOperator "!"  = pure Not
 toOperator _    = fail' "Failed toOperator"
 
-evaluate :: String -> Maybe Int
-evaluate input = do
+evaluate :: [(String, Int)] -> String -> Maybe Int
+evaluate subst input =
   case runParser parseExpr input of
-    Success rest ast | null rest -> return $ compute ast
+    Success rest ast | null rest -> evalExpr (Map.fromList subst) ast
     _                            -> Nothing
-
-
-
-compute :: AST -> Int
-compute (Num x)            = x
-compute (BinOp Plus x y)   = compute x + compute y
-compute (BinOp Mult x y)   = compute x * compute y
-compute (BinOp Minus x y)  = compute x - compute y
-compute (BinOp Div x y)    = compute x `div` compute y
-compute (BinOp Mod x y)    = compute x `mod` compute y
-compute (BinOp Gt x y)     = fromBool $ compute x > compute y
-compute (BinOp Ge x y)     = fromBool $ compute x >= compute y
-compute (BinOp Lt x y)     = fromBool $ compute x < compute y
-compute (BinOp Le x y)     = fromBool $ compute x <= compute y
-compute (BinOp Equal x y)  = fromBool $ compute x == compute y
-compute (BinOp Nequal x y) = fromBool $ compute x /= compute y
-compute (BinOp And x y)    = fromBool $ (toBool $ compute x) && (toBool $ compute y)
-compute (BinOp Or x y)     = fromBool $ (toBool $ compute x) || (toBool $ compute y)
-compute (UnaryOp Minus x)  = 0 - compute x
-compute (UnaryOp Not x)    = fromBool $ compute x == 0
