@@ -22,7 +22,7 @@ run input = do
     putStrLn $ printf "Input:\t%s" input
     case runParser parseExpr input of
       Success rest tree ->
-        putStrLn $ printf "Rest:\t%s\nResult:\t%s\nTree:%s\n" (show rest) (show $ evaluate input) (show tree)
+        putStrLn $ printf "Rest:\t%s\nResult:\t%s\nTree:%s\n" (show rest) (show $ evaluate [] input) (show tree)
       Failure e -> putStrLn $ "Parsing failed:\n" ++ show e
 
 main :: IO ()

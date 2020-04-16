@@ -1,15 +1,25 @@
 module Test.Combinators where
 
+<<<<<<< HEAD
 import           Combinators         (Parser, Result (..), runParser,
                                       runParser, satisfy, symbol,
                                       toStream)
 import           Control.Applicative
 import           Test.Tasty.HUnit    (Assertion, assertBool, (@?=))
+=======
+import           Combinators      (Parser, Result (..), elem', runParser,
+                                   satisfy, sepBy1, symbol, prefix)
+import           Test.Tasty.HUnit (Assertion, (@?=))
+import           Control.Applicative (Alternative (..))
+>>>>>>> HW07
 
 testFailure = assertBool "" . isFailure
 
 isFailure (Failure _) = True
 isFailure _           = False
+
+emptyErrMsg :: String
+emptyErrMsg = "Empty string"
 
 digit :: Parser String String Char
 digit = satisfy (`elem` "0123456789")
