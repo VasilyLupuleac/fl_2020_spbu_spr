@@ -3,7 +3,7 @@ module Test.Expr where
 import           AST                 (AST (..), Operator (..))
 import           Combinators         (InputStream (..), Parser (..),
                                       Result (..), runParser,
-                                      symbol, toStream, word, prefix)
+                                      symbol, toStream, word)
 import           Control.Applicative ((<|>))
 import           Expr                (Associativity (..), evaluate, parseExpr,
                                       parseNum, opParser, toOperator, uberExpr, parseIdent, OpType (..))
@@ -61,30 +61,21 @@ unit_parseNum = do
     testFailure (runParser parseNum "+3")
     testFailure (runParser parseNum "a")
 
-unit_parseNegNum :: Assertion
-unit_parseNegNum = do
-    runParser parseNegNum "123" @?= Success (toStream "" 3) (123)
-    runParser parseNegNum "-123" @?= Success (toStream "" 4) (-123)
-    runParser parseNegNum "--123" @?= Success (toStream "" 5) (123)
-    testFailure $ runParser parseNegNum "+-3"
-    testFailure $ runParser parseNegNum "-+3"
-    testFailure $ runParser parseNegNum "-a"
-
 unit_opParser :: Assertion
 unit_opParser = do
-    runParser (opParser "+") "+1" @?= Success "1" Plus
-    runParser (opParser "*") "**" @?= Success "*" Mult
-    runParser (opParser "-") "-2" @?= Success "2" Minus
-    runParser (opParser "/") "/8" @?= Success "8" Div
-    runParser (opParser "^") "^>_<^" @?= Success ">_<^" Pow
-    runParser (opParser ">") ">=19" @?= Success "=19" Gt
-    runParser (opParser ">=") ">=19" @?= Success "19" Ge
-    runParser (opParser "<") "<3" @?= Success "3" Lt
-    runParser (opParser "<=") "<=>" @?= Success ">" Le
-    runParser (opParser "==") "==b" @?= Success "b" Equal
-    runParser (opParser "/=") "/=b" @?= Success "b" Nequal
-    runParser (opParser "&&") "&&True" @?= Success "True" And
-    runParser (opParser "||") "||False" @?= Success "False" Or
+    runParser (opParser "+") "+1" @?= Success (toStream "1" 1) Plus
+    runParser (opParser "*") "**" @?= Success (toStream "*" 1) Mult
+    runParser (opParser "-") "-2" @?= Success (toStream "2" 1) Minus
+    runParser (opParser "/") "/8" @?= Success (toStream "8" 1) Div
+    runParser (opParser "^") "^>_<^" @?= Success (toStream ">_<^" 1) Pow
+    runParser (opParser ">") ">=19" @?= Success (toStream "=19" 1) Gt
+    runParser (opParser ">=") ">=19" @?= Success (toStream "19" 2) Ge
+    runParser (opParser "<") "<3" @?= Success (toStream "3" 1) Lt
+    runParser (opParser "<=") "<=>" @?= Success (toStream ">" 2) Le
+    runParser (opParser "==") "==b" @?= Success (toStream "b" 2) Equal
+    runParser (opParser "/=") "/=b" @?= Success (toStream "b" 2) Nequal
+    runParser (opParser "&&") "&&True" @?= Success (toStream "True" 2) And
+    runParser (opParser "||") "||False" @?= Success (toStream "False" 2) Or
     assertBool "" $ isFailure (runParser (opParser "+") "_!+")
     assertBool "" $ isFailure (runParser (opParser "*") "+*2")
     assertBool "" $ isFailure (runParser (opParser "-") ">-<")

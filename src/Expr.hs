@@ -1,8 +1,7 @@
 module Expr where
 
 import           AST                 (AST (..), Operator (..), Subst (..))
-import           Combinators         (Parser (..), Result (..), fail',
-                                      runParser, satisfy, stream, success)
+import           Combinators
 import           Control.Applicative
 import           Data.Char           (digitToInt, isDigit, isLetter, isSpace)
 import qualified Data.Map            as Map
@@ -81,7 +80,7 @@ parseExpr = parseWS *> uberExpr [(opParser "||", Binary RightAssoc),
                       (opParser "^", Binary RightAssoc)]
                       (Num <$> parseNum <|> 
                        symbol '(' *> parseExpr <* symbol ')' <|>
-					  (uncurry FunctionCall) <$> parseFunCall <|>
+					  (uncurry FunctionCall) <$> parseFunctionCall <|>
                        Ident <$> parseIdent)
                       BinOp
                       UnaryOp <* parseWS
@@ -100,12 +99,17 @@ parseIdent = (:) <$> (pltr <|> p_) <*> many (pltr <|> p_ <|> pdgt)
     pltr = satisfy isLetter
     pdgt = satisfy isDigit
 
-parseFunCall :: parser String String (String, [AST])
-parseFunCall = do
-  name <- parseIdent
-  parseWS <* symbol '(' <* parseWS
-  args <- sepBy1 (parseWS <* symbol ',' <* parseWS) parseIdent
-  parseWS <* symbol ')' <* parseWS
+parseFunctionCall :: Parser String String (String, [AST])
+parseFunctionCall = let
+  lbr = parseWS <* symbol '(' <* parseWS
+  rbr = parseWS <* symbol ')' <* parseWS
+  in do
+    name <- parseIdent
+    args <- lbr *> (sepBy1 (parseWS <* symbol ',' <* parseWS) parseExpr <* rbr)
+	    <|> lbr *> rbr *> (pure [])
+    return (name, args)
+    
+    
 
 parseWS :: Parser String String String
 parseWS = many $ satisfy isSpace
@@ -135,5 +139,5 @@ toOperator _    = fail' "Failed toOperator"
 evaluate :: [(String, Int)] -> String -> Maybe Int
 evaluate subst input =
   case runParser parseExpr input of
-    Success rest ast | null rest -> evalExpr (Map.fromList subst) ast
-    _                            -> Nothing
+    Success rest ast | null (stream rest) -> evalExpr (Map.fromList subst) ast
+    _                                     -> Nothing

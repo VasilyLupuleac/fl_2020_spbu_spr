@@ -16,7 +16,7 @@ newtype Parser error input result
   = Parser { runParser' :: (InputStream input) -> Result error input result }
 
 data InputStream a = InputStream { stream :: a, curPos :: Position }
-                   deriving (Show, Eq)
+                   deriving (Eq)
 
 data ErrorMsg e = ErrorMsg { errors :: [e], pos :: Position }
                 deriving (Eq)
@@ -45,16 +45,16 @@ instance Applicative (Parser error input) where
   pure x = Parser $ \input -> Success input x
 
   fp <*> p = Parser $ \input ->
-    case runParser fp input of
-      Success input' f -> runParser (f <$> p) input'
+    case runParser' fp input of
+      Success input' f -> runParser' (f <$> p) input'
       Failure e        -> Failure e                      
 
 instance Monad (Parser error input) where
   return = pure
 
   p >>= f = Parser $ \input ->
-    case runParser p input of
-      Success i r -> runParser (f r) i
+    case runParser' p input of
+      Success i r -> runParser' (f r) i
       Failure e   -> Failure e
 
 instance Monoid error => Alternative (Parser error input) where
@@ -130,6 +130,9 @@ word w = Parser $ \(InputStream input pos) ->
   then Success (InputStream suff (pos + length w)) w
   else Failure [makeError ("Expected " ++ show w) pos]
 
+instance (Show a) => Show (InputStream a) where
+  show (InputStream s n) = "(toStream " ++ show s ++ " " ++ show n ++ ")"
+  
 instance Show (ErrorMsg String) where
   show (ErrorMsg e pos) = "at position " ++ show pos ++ ":\n" ++ (unlines $ map ('\t':) (nub e))
 

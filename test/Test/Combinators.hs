@@ -1,17 +1,10 @@
 module Test.Combinators where
 
-<<<<<<< HEAD
 import           Combinators         (Parser, Result (..), runParser,
                                       runParser, satisfy, symbol,
                                       toStream)
 import           Control.Applicative
 import           Test.Tasty.HUnit    (Assertion, assertBool, (@?=))
-=======
-import           Combinators      (Parser, Result (..), elem', runParser,
-                                   satisfy, sepBy1, symbol, prefix)
-import           Test.Tasty.HUnit (Assertion, (@?=))
-import           Control.Applicative (Alternative (..))
->>>>>>> HW07
 
 testFailure = assertBool "" . isFailure
 
