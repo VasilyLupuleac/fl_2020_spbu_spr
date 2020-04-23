@@ -11,6 +11,9 @@ testFailure = assertBool "" . isFailure
 isFailure (Failure _) = True
 isFailure _           = False
 
+emptyErrMsg :: String
+emptyErrMsg = "Empty string"
+
 digit :: Parser String String Char
 digit = satisfy (`elem` "0123456789")
 

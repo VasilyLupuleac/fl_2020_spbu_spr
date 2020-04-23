@@ -8,6 +8,7 @@ data Operator = Plus
               | Mult
               | Minus
               | Div
+              | Mod
               | Pow
               | Equal
               | Nequal
@@ -34,6 +35,7 @@ instance Show Operator where
   show Mult   = "*"
   show Minus  = "-"
   show Div    = "/"
+  show Mod    = "%"
   show Equal  = "="
   show Pow    = "^"
   show Nequal = "/="

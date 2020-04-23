@@ -16,7 +16,7 @@ newtype Parser error input result
   = Parser { runParser' :: (InputStream input) -> Result error input result }
 
 data InputStream a = InputStream { stream :: a, curPos :: Position }
-                   deriving (Show, Eq)
+                   deriving (Eq)
 
 data ErrorMsg e = ErrorMsg { errors :: [e], pos :: Position }
                 deriving (Eq)
@@ -34,19 +34,31 @@ toStream = InputStream
 incrPos :: InputStream a -> InputStream a
 incrPos (InputStream str pos) = InputStream str (pos + 1)
 
+instance Functor (Result error input) where
+  fmap f (Success inp res) = Success inp (f res)
+  fmap f (Failure e) = Failure e
+
 instance Functor (Parser error input) where
-  fmap = error "fmap not implemented"
+  fmap f (Parser p) = Parser $ (fmap f) . p
 
 instance Applicative (Parser error input) where
-  pure = error "pure not implemented"
-  (<*>) = error "<*> not implemented"
+  pure x = Parser $ \input -> Success input x
+
+  fp <*> p = Parser $ \input ->
+    case runParser' fp input of
+      Success input' f -> runParser' (f <$> p) input'
+      Failure e        -> Failure e                      
 
 instance Monad (Parser error input) where
-  return = error "return not implemented"
+  return = pure
 
-  (>>=) = error ">>= not implemented"
+  p >>= f = Parser $ \input ->
+    case runParser' p input of
+      Success i r -> runParser' (f r) i
+      Failure e   -> Failure e
 
 instance Monoid error => Alternative (Parser error input) where
+
   empty = Parser $ \input -> Failure [makeError mempty (curPos input)]
 
   Parser a <|> Parser b = Parser $ \input ->
@@ -76,6 +88,19 @@ infixl 1 <?>
       Failure err -> Failure $ mergeErrors [makeError msg (maximum $ map pos err)] err
       x -> x
 
+-- Принимает последовательность элементов, разделенных разделителем
+-- Первый аргумент -- парсер для разделителя
+-- Второй аргумент -- парсер для элемента
+-- В последовательности должен быть хотя бы один элемент
+sepBy1 :: Monoid e => Parser e i sep -> Parser e i a -> Parser e i [a]
+sepBy1 sep elem = (:) <$> elem <*> many (sep *> elem)
+
+sepBy1l :: Monoid e => Parser e i sep -> Parser e i a -> Parser e i (a, [(sep, a)])
+sepBy1l sep elem = (,) <$> elem <*> many ((,) <$> sep <*> elem)
+
+sepBy1r :: Monoid e => Parser e i sep -> Parser e i a -> Parser e i ([(a, sep)], a)
+sepBy1r sep elem = (,) <$> many ((,) <$> elem <*> sep) <*> elem
+
 -- Проверяет, что первый элемент входной последовательности -- данный символ
 symbol :: Char -> Parser String String Char
 symbol c = ("Expected symbol: " ++ show c) <?> satisfy (== c)
@@ -92,11 +117,7 @@ satisfy p = Parser $ \(InputStream input pos) ->
 
 -- Успешно парсит пустую строку
 epsilon :: Parser e i ()
-epsilon = success ()
-
--- Всегда завершается успехом, вход не читает, возвращает данное значение
-success :: a -> Parser e i a
-success a = Parser $ \input -> Success input a
+epsilon = pure ()
 
 -- Всегда завершается ошибкой
 fail' :: e -> Parser e i a
@@ -109,6 +130,9 @@ word w = Parser $ \(InputStream input pos) ->
   then Success (InputStream suff (pos + length w)) w
   else Failure [makeError ("Expected " ++ show w) pos]
 
+instance (Show a) => Show (InputStream a) where
+  show (InputStream s n) = "(toStream " ++ show s ++ " " ++ show n ++ ")"
+  
 instance Show (ErrorMsg String) where
   show (ErrorMsg e pos) = "at position " ++ show pos ++ ":\n" ++ (unlines $ map ('\t':) (nub e))
 

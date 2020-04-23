@@ -5,8 +5,8 @@ import           Combinators         (InputStream (..), Parser (..),
                                       Result (..), runParser,
                                       symbol, toStream, word)
 import           Control.Applicative ((<|>))
-import           Expr                (Associativity (..), OpType (..), evaluate,
-                                      parseExpr, parseNegNum, parseNum,                                       uberExpr, parseIdent)
+import           Expr                (Associativity (..), evaluate, parseExpr,
+                                      parseNum, opParser, toOperator, uberExpr, parseIdent, OpType (..))
 import           Test.Tasty.HUnit    (Assertion, assertBool, (@?=))
 
 testFailure = assertBool "" . isFailure
@@ -16,22 +16,42 @@ isFailure  _          = False
 
 unit_evaluate :: Assertion
 unit_evaluate = do
-    evaluate "1" @?= Just 1
-    evaluate "1+2" @?= Just (1+2)
-    evaluate "2+4+8" @?= Just (2+4+8)
-    evaluate "11+22" @?= Just (11+22)
-    evaluate "13+42+777" @?= Just (13+42+777)
-    evaluate "31+24+777" @?= Just (31+24+777)
-    evaluate "1+2*3+4" @?= Just (1+2*3+4)
-    evaluate "12+23*34+456" @?= Just (12+23*34+456)
-    evaluate "1-2*3+4" @?= Just (1-2*3+4)
-    evaluate "1-2-3" @?= Just (1-2-3)
-    evaluate "4/2-2" @?= Just (4 `div` 2 - 2)
-    evaluate "(1+2)*(3+4)" @?= Just ((1+2)*(3+4))
-    evaluate "12+(23*(34)+456)" @?= Just (12+(23*(34)+456))
-    evaluate "((1-(2*3))+4)" @?= Just ((1-(2*3))+4)
-    evaluate "1-2+3-4" @?= Just (1-2+3-4)
-    evaluate "6/2*3" @?= Just (6 `div` 2 * 3)
+    evaluate [] "1" @?= Just 1
+    evaluate [] "1+2" @?= Just (1 + 2)
+    evaluate [] "2 + 4 +8" @?= Just (2 + 4 + 8)
+    evaluate [] "11+22" @?= Just (11+22)
+    evaluate [] "13 + 42 + 777" @?= Just (13 + 42 + 777)
+    evaluate [] "31+ 24+777" @?= Just (31 + 24 + 777)
+    evaluate [] "1+2*3+4" @?= Just (1 + 2 * 3 + 4)
+    evaluate [] "12+23*34+456" @?= Just (12 + 23 * 34 + 456)
+    evaluate [] "1-2*3+4" @?= Just (1 - 2 * 3 + 4)
+    evaluate [] "1-2-3" @?= Just (1 - 2 - 3)
+    evaluate [] "4/2-2" @?= Just (4 `div` 2 - 2)
+    evaluate [] "(1+2)*(3+4)" @?= Just ((1 + 2) * (3 + 4))
+    evaluate [] "12+(23 * (34)+456)" @?= Just (12 + (23 * (34) + 456))
+    evaluate [] "((1-(2*3))+4)" @?= Just ((1 - (2 * 3)) + 4)
+    evaluate [] "1-2+3-4" @?= Just (1 - 2 + 3 - 4)
+    evaluate [] "6/2*3" @?= Just (6 `div` 2 * 3)
+    evaluate [("x", 1)] "x" @?= (Just 1)
+    evaluate [("x", 10), ("y", 100)] "x * y" @?= Just 1000
+    evaluate [("x", 10), ("y", 100)] "x + y" @?= Just 110
+    evaluate [("x", 10), ("y", 100)] "x - y" @?= Just (-90)
+    evaluate [("x", 10), ("y", 100)] "y / x" @?= Just 10
+    evaluate [("x", 10), ("y", 100)] "x < y" @?= Just 1
+    evaluate [("x", 10), ("y", 100)] "x <= y" @?= Just 1
+    evaluate [("x", 10)] "x <= x" @?= Just 1
+    evaluate [("x", 10), ("y", 100)] "x > y" @?= Just 0
+    evaluate [("x", 10), ("y", 100)] "x >= y" @?= Just 0
+    evaluate [("x", 224)] "x >= x" @?= Just 1
+    evaluate [("x", 747)] "x == x" @?= Just 1
+    evaluate [("x", 380)] "x /= x" @?= Just 0
+    evaluate [("x", 10), ("y", 100)] "x % y" @?= Just 10
+    evaluate [("x", 10), ("y", 100)] "x % y" @?= Just 10
+    evaluate [("x", 10), ("y", 100)] "x % y" @?= Just 10
+    evaluate [("x", 10), ("y", 2)] "-x ^ y" @?= Just (-100)
+    evaluate [("x", 10), ("y", 3)] "!x" @?= Just 0
+    evaluate [("x", 0), ("y", 1)] "x&&y" @?= Just 0
+    evaluate [("x", 0), ("y", 1)] "x||y" @?= Just 1
 
 unit_parseNum :: Assertion
 unit_parseNum = do
@@ -41,14 +61,34 @@ unit_parseNum = do
     testFailure (runParser parseNum "+3")
     testFailure (runParser parseNum "a")
 
-unit_parseNegNum :: Assertion
-unit_parseNegNum = do
-    runParser parseNegNum "123" @?= Success (toStream "" 3) (123)
-    runParser parseNegNum "-123" @?= Success (toStream "" 4) (-123)
-    runParser parseNegNum "--123" @?= Success (toStream "" 5) (123)
-    testFailure $ runParser parseNegNum "+-3"
-    testFailure $ runParser parseNegNum "-+3"
-    testFailure $ runParser parseNegNum "-a"
+unit_opParser :: Assertion
+unit_opParser = do
+    runParser (opParser "+") "+1" @?= Success (toStream "1" 1) Plus
+    runParser (opParser "*") "**" @?= Success (toStream "*" 1) Mult
+    runParser (opParser "-") "-2" @?= Success (toStream "2" 1) Minus
+    runParser (opParser "/") "/8" @?= Success (toStream "8" 1) Div
+    runParser (opParser "^") "^>_<^" @?= Success (toStream ">_<^" 1) Pow
+    runParser (opParser ">") ">=19" @?= Success (toStream "=19" 1) Gt
+    runParser (opParser ">=") ">=19" @?= Success (toStream "19" 2) Ge
+    runParser (opParser "<") "<3" @?= Success (toStream "3" 1) Lt
+    runParser (opParser "<=") "<=>" @?= Success (toStream ">" 2) Le
+    runParser (opParser "==") "==b" @?= Success (toStream "b" 2) Equal
+    runParser (opParser "/=") "/=b" @?= Success (toStream "b" 2) Nequal
+    runParser (opParser "&&") "&&True" @?= Success (toStream "True" 2) And
+    runParser (opParser "||") "||False" @?= Success (toStream "False" 2) Or
+    assertBool "" $ isFailure (runParser (opParser "+") "_!+")
+    assertBool "" $ isFailure (runParser (opParser "*") "+*2")
+    assertBool "" $ isFailure (runParser (opParser "-") ">-<")
+    assertBool "" $ isFailure (runParser (opParser "/") "=//")
+    assertBool "" $ isFailure (runParser (opParser "^") "0^1")
+    assertBool "" $ isFailure (runParser (opParser ">") "1>2")
+    assertBool "" $ isFailure (runParser (opParser ">=") ">>=")
+    assertBool "" $ isFailure (runParser (opParser "<") ">=<")
+    assertBool "" $ isFailure (runParser (opParser "<=") "<<=")
+    assertBool "" $ isFailure (runParser (opParser "==") "=12==")
+    assertBool "" $ isFailure (runParser (opParser "/=") "")
+    assertBool "" $ isFailure (runParser (opParser "&&") "&||&&")
+    assertBool "" $ isFailure (runParser (opParser "||") "|&&||")
 
 unit_parseIdent :: Assertion
 unit_parseIdent = do
