@@ -22,7 +22,6 @@ type Defs = Map.Map String Function
 data Program = Program { functions :: [Function], main :: LAst }
 
 data Function = Function { name :: String, args :: [Var], funBody :: LAst, returnExpr :: Expr }
-              deriving (Eq)
 
 data LAst
   = If { cond :: Expr, thn :: LAst, els :: LAst }
@@ -31,7 +30,6 @@ data LAst
   | Read { var :: Var }
   | Write { expr :: Expr }
   | Seq { statements :: [LAst] }
-  | Return { expr :: Expr }
   | FunCall { funName :: Var, funArgs :: [Expr] }
   deriving (Eq)
 
@@ -96,18 +94,14 @@ parseAssign = do
   
 parseRead :: Parser String String LAst
 parseRead = do
-  word "read" <* ws
-  lbr <* ws
-  var <- parseIdent
-  ws <* rbr
+  word "read" 
+  var <- lbr *> parseIdent <* rbr
   return $ Read var
   
 parseWrite :: Parser String String LAst
 parseWrite = do
-  word "print" <* ws
-  lbr
-  expr <- parseExpr
-  ws <* rbr
+  word "print"
+  expr <- lbr *> parseExpr <* rbr
   return $ Write expr
 
 parseSeq :: Parser String String LAst
@@ -117,11 +111,11 @@ parseSeq = do
   ws <* symbol '}'
   return $ Seq cmds
  
-parseReturn :: Parser String String LAst
+parseReturn :: Parser String String Expr
 parseReturn = do
   word "return"
   expr <- parseExpr
-  return $ Return expr
+  return expr
 
 parseFunCall :: Parser String String LAst
 parseFunCall = (uncurry FunCall) <$> parseFunctionCall
@@ -130,7 +124,7 @@ parseL :: Parser String String LAst
 parseL = ws *> (parseIf <|> parseWhile <|> 
                 parseAssign <|> parseRead <|>
                 parseWrite <|> parseSeq <|>
-                parseReturn <|> parseFunCall) <* ws
+                parseFunCall) <* ws
 
 
 parseDef :: Parser String String Function
@@ -140,8 +134,11 @@ parseDef = do
   lbr
   args <- sepBy1 (ws *> symbol ',' <* ws) parseIdent <|> pure []
   rbr
-  body <- parseSeq
-  return $ Function name args body
+  symbol '{'
+  body <- many $ parseL <* symbol ';'
+  ret <- ws *> parseReturn
+  ws <* symbol '}'
+  return $ Function name args (Seq body) ret
     
 
 parseProg :: Parser String String Program
@@ -152,40 +149,8 @@ parseProg = do
 
 
 initialConf :: [Int] -> Configuration
-initialConf input = Conf Map.empty input []
-
-eval :: LAst -> Configuration -> Maybe Configuration
-
-eval (If cond thn els) conf = 
-  case evalExpr (subst conf) cond of
-    Nothing -> Nothing
-    Just 0  -> eval els conf
-    _       -> eval thn conf
-
-eval (While cond body) conf = 
-  case evalExpr (subst conf) cond of
-    Nothing -> Nothing
-    Just 0  -> Just conf
-    _       ->
-      case eval body conf of
-        Nothing    -> Nothing
-        Just conf' -> eval (While cond body) conf'
-
-eval (Assign var expr) (Conf subst i o) =
-  case evalExpr subst expr of
-    Nothing -> Nothing
-    Just x  -> Just $ Conf (Map.insert var x subst) i o
-
-eval (Read var) (Conf _ [] _)             = Nothing
-eval (Read var) (Conf subst (x:input') o) = Just $
-  Conf (Map.insert var x subst) input' o
-
-eval (Write expr) (Conf subst i output) = 
-  case evalExpr subst expr of
-    Nothing -> Nothing
-    Just x  -> Just $ Conf subst i (x:output)
-
-eval (Seq stmts) conf = foldl (\cnf stmt -> cnf >>= eval stmt) (Just conf) stmts
+initialConf input = Conf Map.empty input [] Map.empty
+  
 
 instance Show Function where
   show (Function name args funBody returnExpr) =
@@ -208,7 +173,6 @@ instance Show LAst where
           Read var          -> makeIdent $ printf "read %s" var
           Write expr        -> makeIdent $ printf "write %s" (flatShowExpr expr)
           Seq stmts         -> intercalate "\n" $ map (go n) stmts
-          Return expr       -> makeIdent $ printf "return %s" (flatShowExpr expr)
           FunCall name args -> makeIdent $ printf "%s" (flatShowExpr (FunctionCall name args))
       flatShowExpr (BinOp op l r) = printf "(%s %s %s)" (flatShowExpr l) (show op) (flatShowExpr r)
       flatShowExpr (UnaryOp op x) = printf "(%s %s)" (show op) (flatShowExpr x)

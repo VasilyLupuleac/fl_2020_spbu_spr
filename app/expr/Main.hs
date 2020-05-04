@@ -1,7 +1,8 @@
 module Main where
 
 import           Combinators (runParser, Result (..))
-import           Expr        (evaluate, parseExpr)
+import           Expr        (parseExpr)
+import           LEval       (evaluate)
 import           Text.Printf (printf)
 
 fm0 :: String

@@ -3,9 +3,9 @@ module Test.LEval where
 import           AST
 import qualified Data.Map         as Map
 import           Data.Maybe       (isNothing)
-import           LEval            (evalProg)
+import           LEval
 import           LLang            (Configuration (..), Function (..), LAst (..),
-                                   Program (..))
+                                   Program (..), initialConf)
 import           Test.Tasty.HUnit (Assertion, assertBool, (@?=))
 import           Text.Printf      (printf)
 
@@ -17,6 +17,176 @@ ignoreDefs (Just conf) (Just conf') = do
 ignoreDefs Nothing conf = assertBool "" (isNothing conf)
 ignoreDefs conf Nothing = assertBool "" (isNothing conf)
 
+
+unit_evaluate :: Assertion
+unit_evaluate = do
+    evaluate [] "1" @?= Just 1
+    evaluate [] "1+2" @?= Just (1 + 2)
+    evaluate [] "2 + 4 +8" @?= Just (2 + 4 + 8)
+    evaluate [] "11+22" @?= Just (11+22)
+    evaluate [] "13 + 42 + 777" @?= Just (13 + 42 + 777)
+    evaluate [] "31+ 24+777" @?= Just (31 + 24 + 777)
+    evaluate [] "1+2*3+4" @?= Just (1 + 2 * 3 + 4)
+    evaluate [] "12+23*34+456" @?= Just (12 + 23 * 34 + 456)
+    evaluate [] "1-2*3+4" @?= Just (1 - 2 * 3 + 4)
+    evaluate [] "1-2-3" @?= Just (1 - 2 - 3)
+    evaluate [] "4/2-2" @?= Just (4 `div` 2 - 2)
+    evaluate [] "(1+2)*(3+4)" @?= Just ((1 + 2) * (3 + 4))
+    evaluate [] "12+(23 * (34)+456)" @?= Just (12 + (23 * (34) + 456))
+    evaluate [] "((1-(2*3))+4)" @?= Just ((1 - (2 * 3)) + 4)
+    evaluate [] "1-2+3-4" @?= Just (1 - 2 + 3 - 4)
+    evaluate [] "6/2*3" @?= Just (6 `div` 2 * 3)
+    evaluate [("x", 1)] "x" @?= (Just 1)
+    evaluate [("x", 10), ("y", 100)] "x * y" @?= Just 1000
+    evaluate [("x", 10), ("y", 100)] "x + y" @?= Just 110
+    evaluate [("x", 10), ("y", 100)] "x - y" @?= Just (-90)
+    evaluate [("x", 10), ("y", 100)] "y / x" @?= Just 10
+    evaluate [("x", 10), ("y", 100)] "x < y" @?= Just 1
+    evaluate [("x", 10), ("y", 100)] "x <= y" @?= Just 1
+    evaluate [("x", 10)] "x <= x" @?= Just 1
+    evaluate [("x", 10), ("y", 100)] "x > y" @?= Just 0
+    evaluate [("x", 10), ("y", 100)] "x >= y" @?= Just 0
+    evaluate [("x", 224)] "x >= x" @?= Just 1
+    evaluate [("x", 747)] "x == x" @?= Just 1
+    evaluate [("x", 380)] "x /= x" @?= Just 0
+    evaluate [("x", 10), ("y", 100)] "x % y" @?= Just 10
+    evaluate [("x", 10), ("y", 100)] "x % y" @?= Just 10
+    evaluate [("x", 10), ("y", 100)] "x % y" @?= Just 10
+    evaluate [("x", 10), ("y", 2)] "-x ^ y" @?= Just (-100)
+    evaluate [("x", 10), ("y", 3)] "!x" @?= Just 0
+    evaluate [("x", 0), ("y", 1)] "x&&y" @?= Just 0
+    evaluate [("x", 0), ("y", 1)] "x||y" @?= Just 1
+
+
+-- read x;
+-- if (x > 13)
+-- then { write x }
+-- else {
+--     while (x < 42) {
+--       x := x * 7;
+--       write (x);
+--     }
+-- }
+
+stmt1 :: LAst
+stmt1 =
+  Seq
+    [ Read "x"
+    , If (BinOp Gt (Ident "x") (Num 13))
+         (Seq [(Write (Ident "x"))])
+         (Seq [(While (BinOp Lt (Ident "x") (Num 42))
+                (Seq [ Assign "x"
+                        (BinOp Mult (Ident "x") (Num 7))
+                     , Write (Ident "x")
+                     ]
+                )
+         )])
+    ]
+
+unit_stmt1 :: Assertion
+unit_stmt1 = do
+  let xIs n = Map.fromList [("x", n)]
+  eval stmt1 (initialConf [1]) @?= Just (Conf (xIs 49) [] [49, 7] Map.empty)
+  eval stmt1 (initialConf [10]) @?= Just (Conf (xIs 70) [] [70] Map.empty)
+  eval stmt1 (initialConf [42]) @?= Just (Conf (xIs 42) [] [42] Map.empty)
+
+
+-- read x;
+-- if (x)
+-- then {
+--   while (x) {
+--     x := x - 2;
+--     write (x);
+--   }
+-- else {}
+stmt2 :: LAst
+stmt2 =
+  Seq
+    [ Read "x"
+    , If (Ident "x")
+         (Seq [(While (Ident "x")
+                (Seq
+                   [ (Assign "x" (BinOp Minus (Ident "x") (Num 2)))
+                   , (Write (Ident "x"))
+                   ]
+                )
+         )])
+         (Seq [])
+    ]
+
+unit_stmt2 :: Assertion
+unit_stmt2 = do
+  let xIs n = Map.fromList [("x", n)]
+  eval stmt2 (initialConf [0]) @?= Just (Conf (xIs 0) [] [] Map.empty)
+  eval stmt2 (initialConf [2]) @?= Just (Conf (xIs 0) [] [0] Map.empty)
+  eval stmt2 (initialConf [42]) @?= Just (Conf (xIs 0) [] (filter even [0 .. 40]) Map.empty)
+
+-- read x;
+-- read y;
+-- write (x == y);
+stmt3 :: LAst
+stmt3 =
+  Seq
+    [ Read "x"
+    , Read "y"
+    , Write (BinOp Equal (Ident "x") ((Ident "y")))
+    ]
+
+unit_stmt3 :: Assertion
+unit_stmt3 = do
+  let subst x y = Map.fromList [("x", x), ("y", y) ]
+  eval stmt3 (initialConf [0, 2]) @?= Just (Conf (subst 0 2) [] [0] Map.empty)
+  eval stmt3 (initialConf [2, 2]) @?= Just (Conf (subst 2 2) [] [1] Map.empty)
+  eval stmt3 (initialConf [42]) @?= Nothing
+
+-- read n;
+-- if (n == 1 || n == 2)
+-- then {
+--   write 1;
+-- }
+-- else {
+--   i := 2;
+--   cur := 1
+--   prev := 1
+--   while (i < n) {
+--     temp := cur + prev;
+--     prev := cur;
+--     cur := temp;
+--     i := i + 1;
+--   }
+--   write (cur);
+-- }
+stmt4 :: LAst
+stmt4 =
+  Seq
+    [ Read "n"
+    , If (BinOp Or (BinOp Equal (Ident "n") (Num 1)) (BinOp Equal (Ident "n") (Num 2)))
+         (Seq [(Write (Num 1))])
+         (Seq
+            [ Assign "i" (Num 2)
+            , Assign "cur" (Num 1)
+            , Assign "prev" (Num 1)
+            , While (BinOp Lt (Ident "i") (Ident "n"))
+                     (Seq
+                        [ Assign "temp" (BinOp Plus (Ident "cur") (Ident "prev"))
+                        , Assign "prev" (Ident "cur")
+                        , Assign "cur" (Ident "temp")
+                        , Assign "i" (BinOp Plus (Ident "i") (Num 1))
+                        ]
+                     )
+            , Write (Ident "cur")
+            ]
+         )
+    ]
+
+unit_stmt4 :: Assertion
+unit_stmt4 = do
+  let subst n i cur prev temp = Map.fromList [("n", n), ("i", i), ("cur", cur), ("prev", prev), ("temp", temp)]
+  let subst' n = Map.fromList [("n", n)]
+  eval stmt4 (initialConf [1]) @?= Just (Conf (subst' 1) [] [1] Map.empty)
+  eval stmt4 (initialConf [2]) @?= Just (Conf (subst' 2) [] [1] Map.empty)
+  eval stmt4 (initialConf [10]) @?= Just (Conf (subst 10 10 55 34 55) [] [55] Map.empty)
+  eval stmt4 (initialConf []) @?= Nothing
 
 
 -- f x y = read z ; return (x + z * y)
