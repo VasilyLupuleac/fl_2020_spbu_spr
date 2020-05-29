@@ -19,38 +19,26 @@ uberExpr :: Monoid e
          => [(Parser e i op, OpType)] -- список операций с их арностью и, в случае бинарных, ассоциативностью
          -> Parser e i ast            -- парсер элементарного выражения
          -> (op -> ast -> ast -> ast) -- конструктор узла дерева для бинарной операции
-         -> (op -> ast -> ast)        -- конструктор узла для унарной операции
          -> Parser e i ast
-uberExpr ops term binAst unAst = foldr f term ops where
+uberExpr ops term binAst = foldr f term ops where
   opFoldl a (op, b) = binAst op a b
   opFoldr (a, op) b = binAst op a b
-  f (op, Unary) expr             = (\op a -> unAst op a) <$> op <*> expr <|> expr
   f (op, Binary NoAssoc) expr    = (\a op b -> binAst op a b) <$> expr <*> op <*> expr <|> expr
   f (op, Binary LeftAssoc) expr  = ((uncurry $ foldl opFoldl) <$> sepBy1l op expr) <|> expr
   f (op, Binary RightAssoc) expr = ((uncurry. flip $ foldr opFoldr) <$> sepBy1r op expr) <|> expr
 
--- Парсер для выражений над +, -, *, /, ^ (возведение в степень)
--- с естественными приоритетами и ассоциативностью над натуральными числами с 0.
--- В строке могут быть скобки
+-- Парсер для выражений над +, *
+-- с естественными приоритетами и ассоциативностью над натуральными числами с 0 и идентификаторами.
+-- В строке могут быть скобки и пробелы
 
 parseExpr :: Parser String String AST
-parseExpr = parseWS *> uberExpr [(opParser "||", Binary RightAssoc),
-                      (opParser "&&", Binary RightAssoc),
-                      (opParser "!", Unary),
-                      (opParser "==" <|> opParser "/=" <|>
-                       opParser "<=" <|> opParser "<"  <|>
-                       opParser ">=" <|> opParser ">", Binary NoAssoc),
-                      (opParser "+" <|> opParser "-", Binary LeftAssoc),
-                      (opParser "*" <|>
-                       opParser "/" <|> opParser "%", Binary LeftAssoc),
-                      (opParser "-", Unary),
-                      (opParser "^", Binary RightAssoc)]
+parseExpr = parseWS *> (uberExpr [
+                      (opParser "+", Binary LeftAssoc),
+                      (opParser "*", Binary LeftAssoc)]
                       (Num <$> parseNum <|> 
                        symbol '(' *> parseExpr <* symbol ')' <|>
-					  (uncurry FunctionCall) <$> parseFunctionCall <|>
                        Ident <$> parseIdent)
-                      BinOp
-                      UnaryOp <* parseWS
+                      staticBinOp) <* parseWS
 
 -- Парсер для целых чисел
 parseNum :: Parser String String Int
@@ -66,18 +54,6 @@ parseIdent = (:) <$> (pltr <|> p_) <*> many (pltr <|> p_ <|> pdgt)
     pltr = satisfy isLetter
     pdgt = satisfy isDigit
 
-parseFunctionCall :: Parser String String (String, [AST])
-parseFunctionCall = let
-  lbr = parseWS <* symbol '(' <* parseWS
-  rbr = parseWS <* symbol ')' <* parseWS
-  in do
-    name <- parseIdent
-    args <- lbr *> (sepBy1 (parseWS <* symbol ',' <* parseWS) parseExpr <* rbr)
-	    <|> lbr *> rbr *> (pure [])
-    return (name, args)
-    
-    
-
 parseWS :: Parser String String String
 parseWS = many $ satisfy isSpace
 
@@ -88,17 +64,34 @@ opParser x = (parseWS *> word x <* parseWS) >>= toOperator
 toOperator :: String -> Parser String String Operator
 toOperator "+"  = pure Plus
 toOperator "*"  = pure Mult
-toOperator "-"  = pure Minus
-toOperator "/"  = pure Div
-toOperator "%"  = pure Mod
-toOperator "^"  = pure Pow
-toOperator "==" = pure Equal
-toOperator "/=" = pure Nequal
-toOperator ">=" = pure Ge
-toOperator ">"  = pure Gt
-toOperator "<=" = pure Le
-toOperator "<"  = pure Lt
-toOperator "&&" = pure And
-toOperator "||" = pure Or
-toOperator "!"  = pure Not
 toOperator _    = fail' "Failed toOperator"
+
+staticPlus :: AST -> AST -> AST
+staticPlus (Num 0) x = x
+staticPlus x (Num 0) = x
+staticPlus (Num x) (Num y) = Num (x + y)
+staticPlus (Num x) (BinOp Plus (Num y) z) = BinOp Plus (Num (x + y)) z
+staticPlus (BinOp Plus (Num y) z) (Num x) = BinOp Plus (Num (x + y)) z
+staticPlus (BinOp Plus (Num x) y) (BinOp Plus (Num z) t) = BinOp Plus (Num (x + z)) (BinOp Plus y t)
+staticPlus (BinOp Plus (Num x) y) z = BinOp Plus (Num x) (staticPlus y z)
+staticPlus z (BinOp Plus (Num x) y) = BinOp Plus (Num x) (staticPlus y z)
+staticPlus y (Num x) = BinOp Plus (Num x) y
+staticPlus a b = BinOp Plus a b
+
+staticMult :: AST -> AST -> AST
+staticMult (Num 0) _ = Num 0
+staticMult _ (Num 0) = Num 0
+staticMult (Num 1) x = x
+staticMult x (Num 1) = x
+staticMult (Num x) (Num y) = Num (x * y)
+staticMult (Num x) (BinOp Mult (Num y) z) = BinOp Mult (Num (x * y)) z
+staticMult (BinOp Mult (Num y) z) (Num x) = BinOp Mult (Num (x * y)) z
+staticMult (BinOp Mult (Num x) y) (BinOp Mult (Num z) t) = BinOp Mult (Num (x * z)) (BinOp Mult y t)
+staticMult (BinOp Mult (Num x) y) z = BinOp Mult (Num x) (staticMult y z)
+staticMult z (BinOp Mult (Num x) y) = BinOp Mult (Num x) (staticMult y z)
+staticMult y (Num x) = BinOp Mult (Num x) y
+staticMult a b = BinOp Mult a b
+
+staticBinOp :: Operator -> AST -> AST -> AST
+staticBinOp Plus = staticPlus
+staticBinOp Mult = staticMult

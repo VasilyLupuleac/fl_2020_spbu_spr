@@ -1,0 +1,321 @@
+\documentclass[12pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{enumerate}
+\usepackage{mathdots}
+\usepackage{amssymb}
+        
+\def\to{\rightarrow}
+\def\b{\textbf}
+\def\t{\textrm}
+
+\newcommand{\divby}{\mathop{\raisebox{-2pt}{$\vdots$}}}
+
+\newenvironment{Problems}{
+	\begin{enumerate}[]
+	}{       
+	\end{enumerate}
+}
+
+\begin{document}
+	\b{Дополнительное задание.\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \  Лупуляк Василий}
+	
+	\begin{Problems}
+		\item [\fbox{1.}] Построить грамматику для языка $\{a^mb^n \mid m \ge n \ge 1\}$
+		
+		Заведем правила для добавления буквы $a$ и добавления букв $a$ и $b$ одновременно:
+		\begin{center}
+			$S \to aS \mid aSb \mid ab$\\
+		\end{center}
+		Очевидно, что каждое слово, выводимое в такой грамматике, лежит в языке. Любое слово $a^mb^n$ из языка можно получить, применив первое правило $m - n$ раз, второе правило $n - 1$ раз и третье правило 1 раз.
+  		
+		\item [\fbox{2.}] Можно ли проанализировать такой язык при помощи алгоритма CYK? Если можно, привести таблицу анализатора и продемонстрировать успешный и неуспешный вывод на 2 цепочках
+		длины не меньше 7. Если нет, обосновать.
+		
+		Язык проанализировать можно, так как с помощью CYK можно проанализировать любой КС язык. Для этого сначала приведем грамматику в НФХ:
+		
+		
+		\begin{center}
+			$S' \to AS \mid AS_b \mid AB$\\
+			$S \to AS \mid AS_b \mid AB$\\
+			$S_b \to SB$\\
+			$A \to a$\\
+			$B \to b$
+		\end{center}
+	
+	Теперь рассмотрим работу алгоритма на примере двух цепочек: $aaaabbb$ и $aabaabb$. 
+	
+	\begin{center}
+		\begin{tabular}{|r|r|r|r|r|r|r|}
+			\cline{1-1}
+			$A$\\
+			\cline{1-2}
+			& $A$\\
+			\cline{1-3}
+			& & $A$\\
+			\cline{1-4}
+			& & & $A$\\
+			\cline{1-5}
+			& & & & $B$\\
+			\cline{1-6}
+			& & & & & $B$\\
+			\hline
+			& & & & & & $B$\\
+			\hline
+		\end{tabular}
+	\end{center}
+	\begin{center}
+		\begin{tabular}{|r|r|r|r|r|r|r|}
+			\cline{1-1}
+			$A$\\
+			\cline{1-2}
+			$\varnothing$ & $A$\\
+			\cline{1-3}
+			& $\varnothing$ & $A$\\
+			\cline{1-4}
+			& & $\varnothing$ & $A$\\
+			\cline{1-5}
+			& & & $S, S'$ & $B$\\
+			\cline{1-6}
+			& & & & $\varnothing$ & $B$\\
+			\hline
+			& & & & & $\varnothing$ & $B$\\
+			\hline
+		\end{tabular}
+	\end{center}
+	\begin{center}
+		\begin{tabular}{|r|r|r|r|r|r|r|}
+			\cline{1-1}
+			$A$\\
+			\cline{1-2}
+			$\varnothing$ & $A$\\
+			\cline{1-3}
+			$\varnothing$ & $\varnothing$ & $A$\\
+			\cline{1-4}
+			& $\varnothing$ & $\varnothing$ & $A$\\
+			\cline{1-5}
+			& & $S, S'$ & $S, S'$ & $B$\\
+			\cline{1-6}
+			& & & $S_b$ & $\varnothing$ & $B$\\
+			\hline
+			& & & & $\varnothing$ & $\varnothing$ & $B$\\
+			\hline
+		\end{tabular}
+	\end{center}
+	\begin{center}
+		\begin{tabular}{|r|r|r|r|r|r|r|}
+			\cline{1-1}
+			$A$\\
+			\cline{1-2}
+			$\varnothing$ & $A$\\
+			\cline{1-3}
+			$\varnothing$ & $\varnothing$ & $A$\\
+			\cline{1-4}
+			$\varnothing$ & $\varnothing$ & $\varnothing$ & $A$\\
+			\cline{1-5}
+			& $S, S'$ & $S, S'$ & $S, S'$ & $B$\\
+			\cline{1-6}
+			& & $S, S', S_b$ & $S_b$ & $\varnothing$ & $B$\\
+			\hline
+			& & & $\varnothing$ & $\varnothing$ & $\varnothing$ & $B$\\
+			\hline
+		\end{tabular}
+	\end{center}
+	\begin{center}
+		\begin{tabular}{|r|r|r|r|r|r|r|}
+			\cline{1-1}
+			$A$\\
+			\cline{1-2}
+			$\varnothing$ & $A$\\
+			\cline{1-3}
+			$\varnothing$ & $\varnothing$ & $A$\\
+			\cline{1-4}
+			$\varnothing$ & $\varnothing$ & $\varnothing$ & $A$\\
+			\cline{1-5}
+			$S, S'$ & $S, S'$ & $S, S'$ & $S, S'$ & $B$\\
+			\cline{1-6}
+			& $S, S', S_b$ & $S, S', S_b$ & $S_b$ & $\varnothing$ & $B$\\
+			\hline
+			& & $S_b$ & $\varnothing$ & $\varnothing$ & $\varnothing$ & $B$\\
+			\hline
+		\end{tabular}
+	\end{center}
+	\begin{center}
+		\begin{tabular}{|r|r|r|r|r|r|r|}
+			\cline{1-1}
+			$A$\\
+			\cline{1-2}
+			$\varnothing$ & $A$\\
+			\cline{1-3}
+			$\varnothing$ & $\varnothing$ & $A$\\
+			\cline{1-4}
+			$\varnothing$ & $\varnothing$ & $\varnothing$ & $A$\\
+			\cline{1-5}
+			$S, S'$ & $S, S'$ & $S, S'$ & $S, S'$ & $B$\\
+			\cline{1-6}
+			$S, S', S_b$ & $S, S', S_b$ & $S, S', S_b$ & $S_b$ & $\varnothing$ & $B$\\
+			\hline
+			& $S, S', S_b$ & $S_b$ & $\varnothing$ & $\varnothing$ & $\varnothing$ & $B$\\
+			\hline
+		\end{tabular}
+	\end{center}
+	\begin{center}
+		\begin{tabular}{|r|r|r|r|r|r|r|}
+			\cline{1-1}
+			$A$\\
+			\cline{1-2}
+			$\varnothing$ & $A$\\
+			\cline{1-3}
+			$\varnothing$ & $\varnothing$ & $A$\\
+			\cline{1-4}
+			$\varnothing$ & $\varnothing$ & $\varnothing$ & $A$\\
+			\cline{1-5}
+			$S, S'$ & $S, S'$ & $S, S'$ & $S, S'$ & $B$\\
+			\cline{1-6}
+			$S, S', S_b$ & $S, S', S_b$ & $S, S', S_b$ & $S_b$ & $\varnothing$ & $B$\\
+			\hline
+			$S, S', S_b$ & $S, S', S_b$ & $S_b$ & $\varnothing$ & $\varnothing$ & $\varnothing$ & $B$\\
+			\hline
+		\end{tabular}
+	\end{center}
+	Получается, что наша цепочка выводима из стартового нетерминала $S'$, то есть слово лежит в языке.\\
+	
+	Теперь проанализируем вторую цепочку:
+	\begin{center}
+		\begin{tabular}{|r|r|r|r|r|r|r|}
+			\cline{1-1}
+			$A$\\
+			\cline{1-2}
+			& $A$\\
+			\cline{1-3}
+			& & $B$\\
+			\cline{1-4}
+			& & & $A$\\
+			\cline{1-5}
+			& & & & $A$\\
+			\cline{1-6}
+			& & & & & $B$\\
+			\hline
+			& & & & & & $B$\\
+			\hline
+		\end{tabular}
+	\end{center}
+	\begin{center}
+		\begin{tabular}{|r|r|r|r|r|r|r|}
+			\cline{1-1}
+			$A$\\
+			\cline{1-2}
+			$\varnothing$ & $A$\\
+			\cline{1-3}
+			& $S, S'$ & $B$\\
+			\cline{1-4}
+			& & $\varnothing$ & $A$\\
+			\cline{1-5}
+			& & & $\varnothing$ & $A$\\
+			\cline{1-6}
+			& & & & $S, S'$ & $B$\\
+			\hline
+			& & & & & $\varnothing$ & $B$\\
+			\hline
+		\end{tabular}
+	\end{center}
+	\begin{center}
+		\begin{tabular}{|r|r|r|r|r|r|r|}
+			\cline{1-1}
+			$A$\\
+			\cline{1-2}
+			$\varnothing$ & $A$\\
+			\cline{1-3}
+			$S, S'$ & $S, S'$ & $B$\\
+			\cline{1-4}
+			& $\varnothing$ & $\varnothing$ & $A$\\
+			\cline{1-5}
+			& & $\varnothing$ & $\varnothing$ & $A$\\
+			\cline{1-6}
+			& & & $S, S'$ & $S, S'$ & $B$\\
+			\hline
+			& & & & $S_b$& $\varnothing$ & $B$\\
+			\hline
+		\end{tabular}
+	\end{center}
+	\begin{center}
+		\begin{tabular}{|r|r|r|r|r|r|r|}
+			\cline{1-1}
+			$A$\\
+			\cline{1-2}
+			$\varnothing$ & $A$\\
+			\cline{1-3}
+			$S, S'$ & $S, S'$ & $B$\\
+			\cline{1-4}
+			$\varnothing$ & $\varnothing$ & $\varnothing$ & $A$\\
+			\cline{1-5}
+			& $\varnothing$ & $\varnothing$ & $\varnothing$ & $A$\\
+			\cline{1-6}
+			& & $\varnothing$ & $S, S'$ & $S, S'$ & $B$\\
+			\hline
+			& & & $S, S', S_b$ & $S_b$& $\varnothing$ & $B$\\
+			\hline
+		\end{tabular}
+	\end{center}
+	\begin{center}
+		\begin{tabular}{|r|r|r|r|r|r|r|}
+			\cline{1-1}
+			$A$\\
+			\cline{1-2}
+			$\varnothing$ & $A$\\
+			\cline{1-3}
+			$S, S'$ & $S, S'$ & $B$\\
+			\cline{1-4}
+			$\varnothing$ & $\varnothing$ & $\varnothing$ & $A$\\
+			\cline{1-5}
+			$\varnothing$ & $\varnothing$ & $\varnothing$ & $\varnothing$ & $A$\\
+			\cline{1-6}
+			& $\varnothing$ & $\varnothing$ & $S, S'$ & $S, S'$ & $B$\\
+			\hline
+			& & $\varnothing$ & $S, S', S_b$ & $S_b$& $\varnothing$ & $B$\\
+			\hline
+		\end{tabular}
+	\end{center}
+	\begin{center}
+		\begin{tabular}{|r|r|r|r|r|r|r|}
+			\cline{1-1}
+			$A$\\
+			\cline{1-2}
+			$\varnothing$ & $A$\\
+			\cline{1-3}
+			$S, S'$ & $S, S'$ & $B$\\
+			\cline{1-4}
+			$\varnothing$ & $\varnothing$ & $\varnothing$ & $A$\\
+			\cline{1-5}
+			$\varnothing$ & $\varnothing$ & $\varnothing$ & $\varnothing$ & $A$\\
+			\cline{1-6}
+			$\varnothing$ & $\varnothing$ & $\varnothing$ & $S, S'$ & $S, S'$ & $B$\\
+			\hline
+			& $\varnothing$ & $\varnothing$ & $S, S', S_b$ & $S_b$& $\varnothing$ & $B$\\
+			\hline
+		\end{tabular}
+	\end{center}
+	\begin{center}
+		\begin{tabular}{|r|r|r|r|r|r|r|}
+			\cline{1-1}
+			$A$\\
+			\cline{1-2}
+			$\varnothing$ & $A$\\
+			\cline{1-3}
+			$S, S'$ & $S, S'$ & $B$\\
+			\cline{1-4}
+			$\varnothing$ & $\varnothing$ & $\varnothing$ & $A$\\
+			\cline{1-5}
+			$\varnothing$ & $\varnothing$ & $\varnothing$ & $\varnothing$ & $A$\\
+			\cline{1-6}
+			$\varnothing$ & $\varnothing$ & $\varnothing$ & $S, S'$ & $S, S'$ & $B$\\
+			\hline
+			$\varnothing$ & $\varnothing$ & $\varnothing$ & $S, S', S_b$ & $S_b$& $\varnothing$ & $B$\\
+			\hline
+		\end{tabular}
+	\end{center}
+	Таким образом, цепочка не является выводимой из $S'$, поэтому не лежит в языке.
+	\end{Problems}
+	
+\end{document}
